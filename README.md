@@ -20,6 +20,59 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## API Implementation
+
+Este proyecto incluye una implementación completa del API para simulaciones de examen con las mejores prácticas de Next.js.
+
+### Configuración
+
+1. Crea un archivo `.env.local`:
+```bash
+cp .env.local.example .env.local
+```
+
+2. Configura la URL del backend:
+```env
+NEXT_PUBLIC_API_URL=http://backend-inscripcion.local/api
+```
+
+### Uso Rápido
+
+```tsx
+// En un componente cliente
+'use client';
+import { useExamSimulations } from '@/lib';
+
+export default function ExamList() {
+  const { data, loading, error } = useExamSimulations();
+  
+  if (loading) return <div>Cargando...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+  
+  return (
+    <ul>
+      {data.map(exam => (
+        <li key={exam.id}>{exam.title}</li>
+      ))}
+    </ul>
+  );
+}
+```
+
+Para más información detallada, consulta [lib/API_USAGE.md](./lib/API_USAGE.md).
+
+### Estructura del API
+
+```
+lib/
+├── config/        # Configuración centralizada
+├── types/         # Tipos TypeScript
+├── utils/         # Cliente HTTP reutilizable
+├── services/      # Servicios de API
+├── hooks/         # Hooks de React personalizados
+└── components/    # Componentes de ejemplo
+```
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

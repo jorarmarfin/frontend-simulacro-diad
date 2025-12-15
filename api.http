@@ -1,0 +1,6 @@
+@host=http://backend-inscripcion.local/api
+
+### GET request to example server
+GET {{host}}/exam-simulations
+
+###
