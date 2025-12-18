@@ -5,15 +5,24 @@
 
 // Servicios
 export { ExamSimulationService } from './services/exam-simulation.service';
+export { SimulationApplicantService } from './services/simulation-applicant.service';
 
 // Hooks
 export { useExamSimulations, useExamSimulation } from './hooks/useExamSimulations';
+export { useSimulationApplicantSearch } from './hooks/useSimulationApplicantSearch';
 
 // Tipos
 export type {
   ExamSimulation,
   ExamSimulationsResponse,
+  ExamSimulationStatusResponse,
   ApiError,
+  SimulationApplicantSearchRequest,
+  SimulationApplicantSearchResponse,
+  SimulationApplicant,
+  SimulationApplicantProcess,
+  SimulationApplicantSuccessResponse,
+  SimulationApplicantErrorResponse,
 } from './types/exam-simulation.types';
 
 // Configuración

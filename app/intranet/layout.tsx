@@ -1,5 +1,6 @@
 import { IntranetHeader } from '@/components/layout/IntranetHeader';
 import { IntranetFooter } from '@/components/layout/IntranetFooter';
+import React from "react";
 
 export default function IntranetLayout({
   children,

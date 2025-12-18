@@ -3,4 +3,11 @@
 ### GET request to example server
 GET {{host}}/exam-simulations
 
-###
+### POST request to search for simulation applicants
+POST {{host}}/simulation-applicants/search
+Content-Type: application/json
+
+{
+  "dni": "71982587",
+  "email": "diegooo@gmail.co"
+}

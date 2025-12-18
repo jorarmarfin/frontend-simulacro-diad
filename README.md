@@ -44,7 +44,7 @@ app/
 ├── intranet/        # Rutas autenticadas
 │   ├── layout.tsx   # Layout con navegación interna
 │   └── ...
-└── auth/            # Autenticación
+└── login/            # Autenticación
 
 components/
 ├── layout/          # Headers y Footers
