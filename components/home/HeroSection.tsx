@@ -4,7 +4,7 @@ import { ArrowRight } from 'lucide-react';
 export function HeroSection() {
   return (
     <section className="relative pt-24 pb-32 bg-blue-100/50 overflow-hidden">
-      <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]"></div>
+      <div className="absolute inset-0 bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]"></div>
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
         <div className="max-w-3xl mx-auto text-center">
           <span className="inline-flex items-center px-3 py-1 text-sm font-semibold text-blue-800 bg-blue-200/80 rounded-full mb-4 animate-fade-in-up">

@@ -6,6 +6,7 @@ const API_CONFIG = {
   endpoints: {
     examSimulations: '/exam-simulations',
     simulationApplicants: {
+      base: '/simulation-applicants',
       search: '/simulation-applicants/search',
     },
   },

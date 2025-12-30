@@ -1,11 +1,99 @@
 "use client";
 
-import { Lock, Mail, ArrowRight } from 'lucide-react';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { CreditCard, Mail, ArrowRight, Loader2 } from 'lucide-react';
+import { SimulationApplicantService } from '@/lib/services/simulation-applicant.service';
+
+// Tipos para el formulario
+interface LoginFormData {
+    dni: string;
+    email: string;
+}
 
 export const Login = () => {
+    const router = useRouter();
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const {
+        register,
+        handleSubmit,
+        formState: { errors, isValid },
+        watch
+    } = useForm<LoginFormData>({
+        mode: 'onChange',
+        defaultValues: {
+            dni: '',
+            email: ''
+        }
+    });
+
+    const dniValue = watch('dni');
+
+    const onSubmit = async (data: LoginFormData) => {
+        setError(null);
+        setIsLoading(true);
+
+        try {
+            const response = await SimulationApplicantService.search({
+                dni: data.dni,
+                email: data.email
+            });
+
+            if (SimulationApplicantService.isSuccessResponse(response)) {
+                // Usuario encontrado, redirigir a página final
+                router.push('/intranet/final');
+            } else {
+                // Usuario no encontrado, redirigir a formulario de datos personales
+                router.push('/intranet/personal-data');
+            }
+        } catch (err) {
+            setError('Ocurrió un error al buscar. Intente nuevamente.');
+            console.error('Error en login:', err);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     return (
-        <form className="mt-8 space-y-6" onSubmit={(e) => e.preventDefault()}>
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
+            {error && (
+                <div className="rounded-md bg-red-50 p-4">
+                    <p className="text-sm text-red-700">{error}</p>
+                </div>
+            )}
+
+            <div>
+                <label htmlFor="dni" className="sr-only">
+                    DNI
+                </label>
+                <div className="relative rounded-md shadow-sm">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                        <CreditCard className="h-5 w-5 text-slate-400" aria-hidden="true" />
+                    </div>
+                    <input
+                        id="dni"
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={8}
+                        {...register('dni', {
+                            required: 'El DNI es requerido',
+                            pattern: {
+                                value: /^[0-9]{8}$/,
+                                message: 'El DNI debe tener 8 dígitos'
+                            }
+                        })}
+                        className="block w-full rounded-md border-0 py-2 pl-10 text-slate-900 ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 transition-all duration-200"
+                        placeholder="DNI (8 dígitos)"
+                    />
+                </div>
+                {errors.dni && (
+                    <p className="mt-1 text-xs text-red-500">{errors.dni.message}</p>
+                )}
+            </div>
+
             <div>
                 <label htmlFor="email-address" className="sr-only">
                     Correo Electrónico
@@ -16,52 +104,43 @@ export const Login = () => {
                     </div>
                     <input
                         id="email-address"
-                        name="email"
                         type="email"
                         autoComplete="email"
-                        required
+                        {...register('email', {
+                            required: 'El correo es requerido',
+                            pattern: {
+                                value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                                message: 'Ingrese un correo válido'
+                            }
+                        })}
                         className="block w-full rounded-md border-0 py-2 pl-10 text-slate-900 ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 transition-all duration-200"
                         placeholder="Correo Electrónico"
                     />
                 </div>
-            </div>
-            <div>
-                <label htmlFor="password" className="sr-only">
-                    Contraseña
-                </label>
-                <div className="relative rounded-md shadow-sm">
-                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                        <Lock className="h-5 w-5 text-slate-400" aria-hidden="true" />
-                    </div>
-                    <input
-                        id="password"
-                        name="password"
-                        type="password"
-                        autoComplete="current-password"
-                        required
-                        className="block w-full rounded-md border-0 py-2 pl-10 text-slate-900 ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 transition-all duration-200"
-                        placeholder="Contraseña"
-                    />
-                </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-                <div className="text-sm">
-                    <a href="#" className="font-medium text-blue-600 hover:text-blue-500 transition-colors">
-                        ¿Olvidaste tu contraseña?
-                    </a>
-                </div>
+                {errors.email && (
+                    <p className="mt-1 text-xs text-red-500">{errors.email.message}</p>
+                )}
             </div>
 
             <div>
                 <button
                     type="submit"
-                    className="group relative flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 transition-all duration-200 transform hover:scale-[1.01]"
+                    disabled={isLoading || !isValid || dniValue?.length !== 8}
+                    className="group relative flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 transition-all duration-200 transform hover:scale-[1.01] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
-                    Iniciar Sesión
-                    <ArrowRight className="ml-2 h-5 w-5" />
+                    {isLoading ? (
+                        <>
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                            Verificando...
+                        </>
+                    ) : (
+                        <>
+                            Continuar
+                            <ArrowRight className="ml-2 h-5 w-5" />
+                        </>
+                    )}
                 </button>
             </div>
         </form>
-    )
+    );
 }

@@ -41,6 +41,35 @@ export interface SimulationApplicant {
   process: SimulationApplicantProcess;
 }
 
+// Request para crear un nuevo applicant
+export interface SimulationApplicantCreateRequest {
+  dni: string;
+  last_name_father: string;
+  last_name_mother: string;
+  first_names: string;
+  email: string;
+  phone_mobile: string;
+  phone_other?: string;
+}
+
+// Response al crear un applicant exitosamente
+export interface SimulationApplicantCreateSuccessResponse {
+  status: 'success';
+  data: SimulationApplicant;
+  message?: string;
+}
+
+// Response de error al crear
+export interface SimulationApplicantCreateErrorResponse {
+  status: 'error';
+  message: string;
+  errors?: Record<string, string[]>;
+}
+
+export type SimulationApplicantCreateResponse =
+  | SimulationApplicantCreateSuccessResponse
+  | SimulationApplicantCreateErrorResponse;
+
 export interface SimulationApplicantSuccessResponse {
   status: 'success';
   data: SimulationApplicant;

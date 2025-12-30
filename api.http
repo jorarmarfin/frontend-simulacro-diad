@@ -11,3 +11,17 @@ Content-Type: application/json
   "dni": "71982587",
   "email": "diegooo@gmail.co"
 }
+
+### POST request to register a new simulation applicant
+POST {{host}}/simulation-applicants
+Content-Type: application/json
+
+{
+  "dni": "15256639",
+  "last_name_father": "Perez",
+  "last_name_mother": "Garcia",
+  "first_names": "Juan Carlos",
+  "email": "lolo123@email.com",
+  "phone_mobile": "987654321",
+  "phone_other": "012345678"
+}

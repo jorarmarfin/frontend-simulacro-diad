@@ -1,0 +1,4 @@
+- No debes crear archivos markdown de explicacion.
+- No debes crear archivos de pruebas unitarias.
+- tu respuesta debe ser simple y directa al punto.
+- Comenta el codigo si es necesario para su mejor comprension.

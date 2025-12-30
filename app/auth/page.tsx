@@ -1,7 +1,8 @@
 import {BookOpen} from "lucide-react";
 import {Login} from "@/components/auth/login";
+import type { Metadata } from "next";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Auth Page",
   description: "Página de autenticación para Simulacro UNI",
 }
@@ -16,10 +17,10 @@ export default function AuthPage() {
             <span className="ml-3 text-3xl font-extrabold text-slate-900">Simulacro UNI</span>
           </div>
           <h2 className="mt-6 text-3xl font-extrabold text-slate-900">
-            Inicia Sesión
+            Verificar Inscripción
           </h2>
           <p className="mt-2 text-sm text-slate-600">
-            Accede a tu cuenta para continuar
+            Ingresa tu DNI y correo para continuar
           </p>
         </div>
         <Login />

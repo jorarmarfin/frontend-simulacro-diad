@@ -3,6 +3,8 @@ import { API_CONFIG } from '@/lib/config/api.config';
 import type {
   SimulationApplicantSearchRequest,
   SimulationApplicantSearchResponse,
+  SimulationApplicantCreateRequest,
+  SimulationApplicantCreateResponse,
   SimulationApplicant,
 } from '@/lib/types/exam-simulation.types';
 
@@ -37,12 +39,41 @@ export class SimulationApplicantService {
   }
 
   /**
+   * Crea un nuevo aplicante para el simulacro
+   * @param data - Datos del aplicante a registrar
+   * @returns Respuesta con el aplicante creado o error
+   */
+  static async create(
+    data: SimulationApplicantCreateRequest
+  ): Promise<SimulationApplicantCreateResponse> {
+    try {
+      return await apiClient.post<SimulationApplicantCreateResponse>(
+        API_CONFIG.endpoints.simulationApplicants.base,
+        data
+      );
+    } catch (error) {
+      console.error('Error creating simulation applicant:', error);
+
+      // Si es un error de la API con respuesta estructurada
+      if (error && typeof error === 'object' && 'status' in error) {
+        return error as SimulationApplicantCreateResponse;
+      }
+
+      // Error genérico
+      return {
+        status: 'error',
+        message: 'Error al registrar el aplicante. Intente nuevamente.',
+      };
+    }
+  }
+
+  /**
    * Type guard para verificar si la respuesta es exitosa
    * @param response - Respuesta de la búsqueda
    * @returns true si la respuesta es exitosa
    */
   static isSuccessResponse(
-    response: SimulationApplicantSearchResponse
+    response: SimulationApplicantSearchResponse | SimulationApplicantCreateResponse
   ): response is { status: 'success'; data: SimulationApplicant } {
     return response.status === 'success' && 'data' in response;
   }
@@ -53,7 +84,7 @@ export class SimulationApplicantService {
    * @returns true si la respuesta es un error
    */
   static isErrorResponse(
-    response: SimulationApplicantSearchResponse
+    response: SimulationApplicantSearchResponse | SimulationApplicantCreateResponse
   ): response is { status: 'error'; message: string } {
     return response.status === 'error' && 'message' in response;
   }
