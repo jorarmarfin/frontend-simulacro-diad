@@ -60,6 +60,9 @@ export function PersonalDataForm() {
       const response = await SimulationApplicantService.create(requestData);
 
       if (SimulationApplicantService.isSuccessResponse(response)) {
+        // Guardar el UUID del postulante para futuras consultas
+        SimulationStorageService.setApplicantUuid(response.data.uuid);
+
         // Registro exitoso, redirigir según el modo del simulacro
         // Si requiere foto (presencial), ir a foto; si es virtual, ir a pagos
         const nextRoute = SimulationStorageService.requiresPhoto()

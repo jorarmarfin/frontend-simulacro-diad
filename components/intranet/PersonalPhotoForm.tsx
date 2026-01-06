@@ -13,6 +13,8 @@ import {
   Loader2
 } from 'lucide-react';
 import { useSimulationMode } from '@/lib/hooks/useSimulationMode';
+import { SimulationApplicantService } from '@/lib/services/simulation-applicant.service';
+import { SimulationStorageService } from '@/lib/services/simulation-storage.service';
 
 export function PersonalPhotoForm() {
   const router = useRouter();
@@ -108,10 +110,17 @@ export function PersonalPhotoForm() {
     fileInputRef.current?.click();
   };
 
-  // Enviar foto
+  // Enviar foto al backend
   const handleSubmit = async () => {
     if (!selectedFile) {
       setError('Debe seleccionar una foto');
+      return;
+    }
+
+    // Obtener el UUID del postulante desde el storage
+    const uuid = SimulationStorageService.getApplicantUuid();
+    if (!uuid) {
+      setError('No se encontró información del postulante. Por favor, complete primero sus datos personales.');
       return;
     }
 
@@ -119,12 +128,15 @@ export function PersonalPhotoForm() {
     setError(null);
 
     try {
-      // TODO: Implementar llamada al API para subir la foto
-      // Simular delay de carga
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const response = await SimulationApplicantService.uploadPhoto(uuid, selectedFile);
 
-      // Redirigir a la siguiente página
-      router.push('/intranet/payments-data');
+      if (SimulationApplicantService.isUploadSuccessResponse(response)) {
+        // Foto subida exitosamente, redirigir a la siguiente página
+        router.push('/intranet/payments-data');
+      } else {
+        // Mostrar error del servidor
+        setError(response.message || 'Error al subir la foto. Intente nuevamente.');
+      }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Error al subir la foto. Intente nuevamente.';
       setError(errorMessage);

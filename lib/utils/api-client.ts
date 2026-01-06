@@ -128,6 +128,65 @@ class ApiClient {
   }
 
   /**
+   * Petición POST con FormData (para subir archivos)
+   * No establece Content-Type para que el navegador lo haga automáticamente con el boundary
+   */
+  async postFormData<T>(
+    endpoint: string,
+    formData: FormData,
+    config?: RequestConfig
+  ): Promise<T> {
+    const { timeout = this.defaultTimeout, headers, ...fetchConfig } = config || {};
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+    try {
+      const response = await fetch(`${this.baseURL}${endpoint}`, {
+        ...fetchConfig,
+        method: 'POST',
+        body: formData,
+        signal: controller.signal,
+        headers: {
+          Accept: 'application/json',
+          ...headers,
+        },
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const error: ApiError = {
+          message: `Error ${response.status}: ${response.statusText}`,
+          status: response.status,
+        };
+
+        try {
+          const errorData = await response.json();
+          error.message = errorData.message || error.message;
+          error.errors = errorData.errors;
+        } catch {
+          // Si no se puede parsear el error, usar el mensaje por defecto
+        }
+
+        throw error;
+      }
+
+      return await response.json();
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw {
+          message: 'La petición ha excedido el tiempo límite',
+          status: 408,
+        } as ApiError;
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  /**
    * Petición DELETE
    */
   async delete<T>(endpoint: string, config?: RequestConfig): Promise<T> {

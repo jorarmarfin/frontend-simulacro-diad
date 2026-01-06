@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { CreditCard, Mail, ArrowRight, Loader2, UserPlus, AlertCircle } from 'lucide-react';
 import { SimulationApplicantService } from '@/lib/services/simulation-applicant.service';
+import { SimulationStorageService } from '@/lib/services/simulation-storage.service';
 
 // Tipos para el formulario
 interface LoginFormData {
@@ -42,17 +43,33 @@ export const Login = () => {
         setIsLoading(true);
 
         try {
-            const response = await SimulationApplicantService.search({
+            // Buscar postulante por DNI y email
+            const searchResponse = await SimulationApplicantService.search({
                 dni: data.dni,
                 email: data.email
             });
 
-            if (SimulationApplicantService.isSuccessResponse(response)) {
-                // Usuario encontrado, redirigir a página final
-                router.push('/intranet/final');
+            if (SimulationApplicantService.isSuccessResponse(searchResponse)) {
+                // Limpiar datos anteriores del usuario
+                SimulationStorageService.clearApplicantData();
+
+                // Obtener datos completos del postulante usando el UUID
+                const uuid = searchResponse.data.uuid;
+                const fullDataResponse = await SimulationApplicantService.getByUuid(uuid);
+
+                if (SimulationApplicantService.isSuccessResponse(fullDataResponse)) {
+                    // Guardar datos completos en localStorage
+                    SimulationStorageService.setApplicantData(fullDataResponse.data);
+                    // Redirigir a página final
+                    router.push('/intranet/final');
+                } else {
+                    // Si falla obtener datos completos, guardar los básicos
+                    SimulationStorageService.setApplicantData(searchResponse.data);
+                    router.push('/intranet/final');
+                }
             } else {
                 // Mostrar mensaje de error del servidor
-                setError(response.message || 'No se encontró el registro. Verifique sus datos o regístrese.');
+                setError(searchResponse.message || 'No se encontró el registro. Verifique sus datos o regístrese.');
             }
         } catch (err: unknown) {
             // Capturar mensaje de error específico

@@ -8,8 +8,8 @@ POST {{host}}/simulation-applicants/search
 Content-Type: application/json
 
 {
-  "dni": "71982587",
-  "email": "diegooo@gmail.co"
+  "dni": "41887192",
+  "email": "luis.mayta@drinux.com"
 }
 
 ### POST request to register a new simulation applicant
@@ -26,5 +26,24 @@ Content-Type: application/json
   "phone_other": "012345678"
 }
 
-### POST Update photo
-POST {{host}}/simulation-applicants/upload-photo
+### Descripción: Sube la foto del carné.
+### Requisitos: Imagen (jpg, png) max 2MB.
+### Nota: En clientes REST como Postman/Insomnia se usa "Multipart Form". Aqui se simula la petición.
+POST {{host}}/api/simulation-applicants/{{uuid}}/upload-photo
+Content-Type: multipart/form-data; boundary=boundary
+Accept: application/json
+
+--boundary
+Content-Disposition: form-data; name="photo"; filename="foto.jpg"
+Content-Type: image/jpeg
+
+< ./path/to/local/photo.jpg
+--boundary--
+
+### Descripción: Obtiene toda la información del postulante usando su UUID.
+GET {{host}}/simulation-applicants/947b3a1b-d5c1-4b65-99bf-6099b9dbb355
+Accept: application/json
+
+### Descripción: Obtiene toda la información del postulante usando su UUID.
+GET {{host}}/simulation-applicants/{{uuid}}
+Accept: application/json

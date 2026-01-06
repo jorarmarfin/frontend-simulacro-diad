@@ -35,6 +35,7 @@ export interface SimulationApplicantProcess {
 
 export interface SimulationApplicant {
   id: number;
+  uuid: string; // UUID único para búsquedas del postulante
   code: string | null;
   dni: string;
   last_name_father: string;
@@ -87,4 +88,24 @@ export interface SimulationApplicantErrorResponse {
 export type SimulationApplicantSearchResponse =
   | SimulationApplicantSuccessResponse
   | SimulationApplicantErrorResponse;
+
+// Response al subir foto exitosamente
+export interface UploadPhotoSuccessResponse {
+  status: 'success';
+  message: string;
+  data?: {
+    photo_url?: string;
+  };
+}
+
+// Response de error al subir foto
+export interface UploadPhotoErrorResponse {
+  status: 'error';
+  message: string;
+  errors?: Record<string, string[]>;
+}
+
+export type UploadPhotoResponse =
+  | UploadPhotoSuccessResponse
+  | UploadPhotoErrorResponse;
 

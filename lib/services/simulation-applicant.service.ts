@@ -6,6 +6,7 @@ import type {
   SimulationApplicantCreateRequest,
   SimulationApplicantCreateResponse,
   SimulationApplicant,
+  UploadPhotoResponse,
 } from '@/lib/types/exam-simulation.types';
 
 export class SimulationApplicantService {
@@ -87,6 +88,70 @@ export class SimulationApplicantService {
     response: SimulationApplicantSearchResponse | SimulationApplicantCreateResponse
   ): response is { status: 'error'; message: string } {
     return response.status === 'error' && 'message' in response;
+  }
+
+  /**
+   * Sube la foto del postulante
+   * @param uuid - UUID del postulante
+   * @param photo - Archivo de imagen (jpg, png, max 2MB)
+   * @returns Respuesta con el resultado de la subida
+   */
+  static async uploadPhoto(uuid: string, photo: File): Promise<UploadPhotoResponse> {
+    try {
+      const formData = new FormData();
+      formData.append('photo', photo);
+
+      return await apiClient.postFormData<UploadPhotoResponse>(
+        API_CONFIG.endpoints.simulationApplicants.uploadPhoto(uuid),
+        formData
+      );
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+
+      // Si es un error de la API con respuesta estructurada
+      if (error && typeof error === 'object' && 'status' in error) {
+        return error as UploadPhotoResponse;
+      }
+
+      // Error genérico
+      return {
+        status: 'error',
+        message: 'Error al subir la foto. Intente nuevamente.',
+      };
+    }
+  }
+
+  /**
+   * Type guard para verificar si la respuesta de upload es exitosa
+   */
+  static isUploadSuccessResponse(
+    response: UploadPhotoResponse
+  ): response is { status: 'success'; message: string; data?: { photo_url?: string } } {
+    return response.status === 'success';
+  }
+
+  /**
+   * Obtiene los datos completos del postulante por UUID
+   * @param uuid - UUID del postulante
+   * @returns Información completa del postulante o error
+   */
+  static async getByUuid(uuid: string): Promise<SimulationApplicantSearchResponse> {
+    try {
+      return await apiClient.get<SimulationApplicantSearchResponse>(
+        API_CONFIG.endpoints.simulationApplicants.searchByUuid(uuid)
+      );
+    } catch (error) {
+      console.error('Error getting applicant by UUID:', error);
+
+      if (error && typeof error === 'object' && 'status' in error) {
+        return error as SimulationApplicantSearchResponse;
+      }
+
+      return {
+        status: 'error',
+        message: 'Error al obtener los datos del postulante.',
+      };
+    }
   }
 }
 
