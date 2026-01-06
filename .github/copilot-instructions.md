@@ -2,3 +2,4 @@
 - No debes crear archivos de pruebas unitarias.
 - tu respuesta debe ser simple y directa al punto.
 - Comenta el codigo si es necesario para su mejor comprension.
+- No ejecutes el proyecto con npm run dev porque ya esta corriendo

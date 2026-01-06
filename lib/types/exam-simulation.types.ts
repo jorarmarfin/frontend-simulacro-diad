@@ -13,6 +13,10 @@ export interface ExamSimulationStatusResponse {
   data: {
     status: 'success' | 'error';
     is_active: boolean;
+    description?: string;
+    exam_date_start?: string;
+    exam_date_end?: string;
+    is_virtual?: boolean; // Indica si el examen es virtual o presencial
     message?: string;
   };
 }
