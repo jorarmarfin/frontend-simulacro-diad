@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { ExamSimulationService } from '@/lib/services/exam-simulation.service';
+import { SimulationStorageService } from '@/lib/services/simulation-storage.service';
 import type {
   ExamSimulationStatusResponse,
   ApiError,
@@ -10,6 +11,7 @@ import type {
 interface UseActiveSimulationState {
   data: ExamSimulationStatusResponse | null;
   isActive: boolean;
+  isVirtual: boolean;
   loading: boolean;
   error: ApiError | null;
   refetch: () => Promise<void>;
@@ -26,6 +28,11 @@ export function useActiveSimulation(): UseActiveSimulationState {
       setError(null);
       const response = await ExamSimulationService.checkActiveSimulation();
       setData(response);
+
+      // Guardar is_virtual en storage para uso en navegación
+      if (response?.data?.is_virtual !== undefined) {
+        SimulationStorageService.setIsVirtual(response.data.is_virtual);
+      }
     } catch (err) {
       setError(err as ApiError);
     } finally {
@@ -40,6 +47,7 @@ export function useActiveSimulation(): UseActiveSimulationState {
   return {
     data,
     isActive: data?.data?.is_active ?? false,
+    isVirtual: data?.data?.is_virtual ?? true, // Por defecto true (virtual, sin foto)
     loading,
     error,
     refetch: fetchData,

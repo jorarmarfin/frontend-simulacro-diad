@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
-import { CreditCard, Mail, ArrowRight, Loader2 } from 'lucide-react';
+import { CreditCard, Mail, ArrowRight, Loader2, UserPlus, AlertCircle } from 'lucide-react';
 import { SimulationApplicantService } from '@/lib/services/simulation-applicant.service';
 
 // Tipos para el formulario
@@ -32,6 +32,11 @@ export const Login = () => {
 
     const dniValue = watch('dni');
 
+    // Navegar al formulario de registro
+    const handleRegister = () => {
+        router.push('/intranet/personal-data');
+    };
+
     const onSubmit = async (data: LoginFormData) => {
         setError(null);
         setIsLoading(true);
@@ -46,11 +51,13 @@ export const Login = () => {
                 // Usuario encontrado, redirigir a página final
                 router.push('/intranet/final');
             } else {
-                // Usuario no encontrado, redirigir a formulario de datos personales
-                router.push('/intranet/personal-data');
+                // Mostrar mensaje de error del servidor
+                setError(response.message || 'No se encontró el registro. Verifique sus datos o regístrese.');
             }
-        } catch (err) {
-            setError('Ocurrió un error al buscar. Intente nuevamente.');
+        } catch (err: unknown) {
+            // Capturar mensaje de error específico
+            const errorMessage = err instanceof Error ? err.message : 'Ocurrió un error al buscar. Intente nuevamente.';
+            setError(errorMessage);
             console.error('Error en login:', err);
         } finally {
             setIsLoading(false);
@@ -60,7 +67,8 @@ export const Login = () => {
     return (
         <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
             {error && (
-                <div className="rounded-md bg-red-50 p-4">
+                <div className="rounded-md bg-red-50 border border-red-200 p-4 flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
                     <p className="text-sm text-red-700">{error}</p>
                 </div>
             )}
@@ -139,6 +147,28 @@ export const Login = () => {
                             <ArrowRight className="ml-2 h-5 w-5" />
                         </>
                     )}
+                </button>
+            </div>
+
+            {/* Separador */}
+            <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-slate-300"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                    <span className="bg-white px-4 text-slate-500">¿No tienes cuenta?</span>
+                </div>
+            </div>
+
+            {/* Botón de registro llamativo */}
+            <div>
+                <button
+                    type="button"
+                    onClick={handleRegister}
+                    className="group relative flex w-full justify-center items-center rounded-md bg-gradient-to-r from-emerald-500 to-teal-600 px-3 py-3 text-sm font-semibold text-white hover:from-emerald-600 hover:to-teal-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 transition-all duration-300 transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
+                >
+                    <UserPlus className="mr-2 h-5 w-5" />
+                    ¡Regístrate ahora!
                 </button>
             </div>
         </form>

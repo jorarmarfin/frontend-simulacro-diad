@@ -25,3 +25,6 @@ Content-Type: application/json
   "phone_mobile": "987654321",
   "phone_other": "012345678"
 }
+
+### POST Update photo
+POST {{host}}/simulation-applicants/upload-photo
