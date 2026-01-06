@@ -1,11 +1,11 @@
-export const metadata = {
-    title: "Final Page",
-    description: "This is the Final page",
+import type { Metadata } from 'next';
+import { UserDataSummary } from '@/components/intranet/UserDataSummary';
+
+export const metadata: Metadata = {
+  title: "Resumen de Inscripción - Simulacro UNI",
+  description: "Resumen y confirmación de datos del postulante",
 }
+
 export default function FinalPage() {
-    return (
-       <>
-        <h1>Final Page</h1>
-       </>
-    );
+  return <UserDataSummary />;
 }

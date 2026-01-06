@@ -60,12 +60,12 @@ export const Login = () => {
                 if (SimulationApplicantService.isSuccessResponse(fullDataResponse)) {
                     // Guardar datos completos en localStorage
                     SimulationStorageService.setApplicantData(fullDataResponse.data);
-                    // Redirigir a página final
-                    router.push('/intranet/final');
+                    // Redirigir a página de datos personales
+                    router.push('/intranet/personal-data');
                 } else {
                     // Si falla obtener datos completos, guardar los básicos
                     SimulationStorageService.setApplicantData(searchResponse.data);
-                    router.push('/intranet/final');
+                    router.push('/intranet/personal-data');
                 }
             } else {
                 // Mostrar mensaje de error del servidor

@@ -43,6 +43,7 @@ export interface SimulationApplicant {
   first_names: string;
   email: string;
   exam_description: string;
+  photo_url: string | null; // URL de la foto del postulante
   process: SimulationApplicantProcess;
 }
 

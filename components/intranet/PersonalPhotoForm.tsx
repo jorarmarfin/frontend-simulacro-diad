@@ -24,6 +24,15 @@ export function PersonalPhotoForm() {
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [existingPhotoUrl, setExistingPhotoUrl] = useState<string | null>(null);
+
+  // Cargar foto existente desde localStorage al iniciar
+  useEffect(() => {
+    const savedData = SimulationStorageService.getApplicantData();
+    if (savedData?.photo_url) {
+      setExistingPhotoUrl(savedData.photo_url);
+    }
+  }, []);
 
   // Validar el archivo seleccionado
   const validateFile = useCallback((file: File): string | null => {
@@ -131,6 +140,13 @@ export function PersonalPhotoForm() {
       const response = await SimulationApplicantService.uploadPhoto(uuid, selectedFile);
 
       if (SimulationApplicantService.isUploadSuccessResponse(response)) {
+        // Obtener datos actualizados del usuario (incluye photo_url)
+        const updatedDataResponse = await SimulationApplicantService.getByUuid(uuid);
+        if (SimulationApplicantService.isSuccessResponse(updatedDataResponse)) {
+          // Actualizar datos en localStorage
+          SimulationStorageService.setApplicantData(updatedDataResponse.data);
+        }
+
         // Foto subida exitosamente, redirigir a la siguiente página
         router.push('/intranet/payments-data');
       } else {
@@ -232,8 +248,43 @@ export function PersonalPhotoForm() {
           </div>
         )}
 
+        {/* Foto existente (ya cargada previamente) */}
+        {existingPhotoUrl && !preview && (
+          <div className="mb-6 rounded-lg bg-green-50 border-2 border-green-300 p-6">
+            <div className="flex flex-col sm:flex-row items-center gap-6">
+              {/* Imagen existente */}
+              <div className="relative">
+                <img
+                  src={existingPhotoUrl}
+                  alt="Foto del postulante"
+                  className="w-40 h-48 object-cover rounded-lg shadow-md border-2 border-white"
+                />
+              </div>
+
+              {/* Info */}
+              <div className="flex-1 text-center sm:text-left">
+                <div className="flex items-center justify-center sm:justify-start gap-2 text-green-700 mb-2">
+                  <CheckCircle className="h-5 w-5" />
+                  <span className="font-semibold">Foto registrada exitosamente</span>
+                </div>
+                <p className="text-sm text-slate-600 mb-3">
+                  Tu foto ya ha sido cargada en el sistema. Si deseas cambiarla, puedes seleccionar una nueva.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleOpenFileDialog}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm border border-slate-300 rounded-lg hover:bg-slate-100 transition-colors"
+                >
+                  <Upload className="h-4 w-4" />
+                  Cambiar foto
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Área de carga de foto */}
-        <div className="mb-6">
+        <div className={`mb-6 ${existingPhotoUrl && !preview ? 'hidden' : ''}`}>
           <input
             ref={fileInputRef}
             type="file"
@@ -321,24 +372,36 @@ export function PersonalPhotoForm() {
 
         {/* Botón de envío */}
         <div className="pt-4">
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={isLoading || !selectedFile}
-            className="w-full flex justify-center items-center rounded-md bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 transition-all duration-200 transform hover:scale-[1.01] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Subiendo foto...
-              </>
-            ) : (
-              <>
-                <CheckCircle className="mr-2 h-5 w-5" />
-                Guardar y Continuar
-              </>
-            )}
-          </button>
+          {/* Si ya existe foto y no hay nueva seleccionada, solo continuar */}
+          {existingPhotoUrl && !selectedFile ? (
+            <button
+              type="button"
+              onClick={() => router.push('/intranet/payments-data')}
+              className="w-full flex justify-center items-center rounded-md bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 transition-all duration-200 transform hover:scale-[1.01]"
+            >
+              <CheckCircle className="mr-2 h-5 w-5" />
+              Continuar
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={isLoading || !selectedFile}
+              className="w-full flex justify-center items-center rounded-md bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 transition-all duration-200 transform hover:scale-[1.01] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Subiendo foto...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="mr-2 h-5 w-5" />
+                  Guardar y Continuar
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
     </div>
