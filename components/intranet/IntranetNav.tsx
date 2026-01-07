@@ -35,7 +35,18 @@ export function IntranetNav() {
   // Verificar si el usuario ya confirmó sus datos
   useEffect(() => {
     const userData = SimulationStorageService.getApplicantData();
-    setTimeout(() => setIsConfirmed(userData?.process?.confirmation !== null), 0);
+
+    // Verificar si todos los pasos están completos para considerar confirmado
+    const hasPersonalData = userData?.process?.pre_registration !== null;
+    const hasPayment = userData?.process?.payment !== null;
+    const requiresPhotoCheck = SimulationStorageService.requiresPhoto();
+    const hasPhoto = !requiresPhotoCheck || (userData?.photo_url !== null);
+    const hasConfirmation = userData?.process?.confirmation !== null;
+
+    // Solo está confirmado si tiene confirmación Y todos los pasos previos
+    const fullyConfirmed = hasConfirmation && hasPersonalData && hasPayment && hasPhoto;
+
+    setTimeout(() => setIsConfirmed(fullyConfirmed), 0);
   }, [pathname]); // Revalidar cuando cambia la ruta
 
   // Filtrar items según el modo del simulacro

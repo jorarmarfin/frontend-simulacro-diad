@@ -18,6 +18,7 @@ export function UserDataSummary() {
   const [isLoading, setIsLoading] = useState(false);
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [canConfirm, setCanConfirm] = useState(false);
 
   // Función para cargar el estado del proceso
   const loadProcessStatus = async (uuid: string) => {
@@ -46,6 +47,17 @@ export function UserDataSummary() {
   useEffect(() => {
     const data = SimulationStorageService.getApplicantData();
     setUserData(data);
+
+    // Verificar si puede confirmar
+    if (data) {
+      const hasPersonalData = data.process.pre_registration !== null;
+      const hasPayment = data.process.payment !== null;
+      const requiresPhoto = SimulationStorageService.requiresPhoto();
+      const hasPhoto = !requiresPhoto || (data.photo_url !== null);
+
+      // Puede confirmar si tiene todos los pasos previos completos
+      setCanConfirm(hasPersonalData && hasPayment && hasPhoto);
+    }
 
     // Cargar el estado del proceso si hay datos
     if (data?.uuid) {
@@ -239,6 +251,23 @@ export function UserDataSummary() {
           </div>
         </div>
 
+        {/* Mensaje de advertencia si falta completar pasos */}
+        {!canConfirm && !isConfirmed && (
+          <div className="mb-6 rounded-lg bg-amber-50 border border-amber-200 p-4 flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-amber-800 font-medium mb-2">
+                Completa todos los pasos antes de confirmar
+              </p>
+              <ul className="text-sm text-amber-700 space-y-1 list-disc list-inside">
+                {!userData?.process.pre_registration && <li>Registra tus datos personales</li>}
+                {!userData?.process.payment && <li>Realiza el pago del simulacro</li>}
+                {SimulationStorageService.requiresPhoto() && !userData?.photo_url && <li>Sube tu fotografía</li>}
+              </ul>
+            </div>
+          </div>
+        )}
+
         {/* Mensaje de confirmación exitosa */}
         {isConfirmed && (
           <div className="mb-6 rounded-lg bg-green-50 border border-green-200 p-4 flex items-center gap-3">
@@ -264,7 +293,7 @@ export function UserDataSummary() {
           <button
             type="button"
             onClick={handleConfirmData}
-            disabled={isLoading || isConfirmed}
+            disabled={isLoading || isConfirmed || !canConfirm}
             className="w-full flex justify-center items-center rounded-md bg-green-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-green-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 transition-all duration-200 transform hover:scale-[1.01] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
           >
             {isLoading ? (
@@ -284,6 +313,12 @@ export function UserDataSummary() {
               </>
             )}
           </button>
+
+          {!canConfirm && !isConfirmed && (
+            <p className="mt-2 text-center text-xs text-slate-500">
+              Completa todos los pasos previos para confirmar tus datos
+            </p>
+          )}
         </div>
       </div>
     </div>

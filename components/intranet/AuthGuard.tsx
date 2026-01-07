@@ -17,8 +17,8 @@ const PUBLIC_ROUTES = ['/intranet/personal-data'];
 /**
  * Componente que protege las rutas del intranet
  * - Verifica la sesión del usuario
- * - Restringe acceso a rutas según el estado de confirmación
- * - Después de confirmar, solo permite acceso a /intranet/final
+ * - Permite acceso libre a todas las páginas mientras no haya confirmado
+ * - Después de confirmar completamente, solo permite acceso a /intranet/final
  */
 export function AuthGuard({ children }: AuthGuardProps) {
   const pathname = usePathname();
@@ -35,16 +35,26 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
     // Verificar estado de confirmación
     const userData = SimulationStorageService.getApplicantData();
-    const isConfirmed = userData?.process?.confirmation !== null;
+
+    // Verificar si todos los pasos están completos para considerar confirmado
+    const hasPersonalData = userData?.process?.pre_registration !== null;
+    const hasPayment = userData?.process?.payment !== null;
+    const requiresPhoto = SimulationStorageService.requiresPhoto();
+    const hasPhoto = !requiresPhoto || (userData?.photo_url !== null);
+    const hasConfirmation = userData?.process?.confirmation !== null;
+
+    // Solo está confirmado si tiene confirmación Y todos los pasos previos
+    const isConfirmed = hasConfirmation && hasPersonalData && hasPayment && hasPhoto;
+
     const isFinalPage = pathname === '/intranet/final';
 
+    // Si ya confirmó completamente, solo permitir acceso a la página final
     if (isConfirmed && !isFinalPage) {
       // Si ya confirmó, redirigir a la página final
       setTimeout(() => router.push('/intranet/final'), 0);
-    } else if (!isConfirmed && isFinalPage) {
-      // Si no ha confirmado, no permitir acceso a la página final
-      setTimeout(() => router.push('/intranet/personal-data'), 0);
     }
+    // Si NO está confirmado, permitir acceso a todas las páginas (incluida /final)
+    // para que pueda completar el proceso y confirmar sus datos
 
     setTimeout(() => setIsCheckingConfirmation(false), 0);
   }, [isAuthenticated, isLoading, pathname, router, isPublicRoute]);

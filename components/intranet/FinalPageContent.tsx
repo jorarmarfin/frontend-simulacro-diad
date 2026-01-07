@@ -26,10 +26,24 @@ export function FinalPageContent() {
       return;
     }
 
+    // Verificar si todos los pasos están completos:
+    // 1. Datos personales (pre_registration)
+    // 2. Pago (payment)
+    // 3. Foto (solo si es presencial y tiene photo_url)
+    // 4. Confirmación final (confirmation)
+    const hasPersonalData = data.process.pre_registration !== null;
+    const hasPayment = data.process.payment !== null;
+    const requiresPhoto = SimulationStorageService.requiresPhoto();
+    const hasPhoto = !requiresPhoto || (data.photo_url !== null);
+    const hasConfirmation = data.process.confirmation !== null;
+
+    // Solo está confirmado si tiene confirmación Y todos los pasos previos
+    const fullyConfirmed = hasConfirmation && hasPersonalData && hasPayment && hasPhoto;
+
     // Usar setTimeout para evitar setState síncrono en effect
     setTimeout(() => {
       setUserData(data);
-      setIsConfirmed(data.process.confirmation !== null);
+      setIsConfirmed(fullyConfirmed);
     }, 0);
   }, [router]);
 

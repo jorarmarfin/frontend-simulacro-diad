@@ -1,4 +1,4 @@
-import { CheckCircle, DollarSign, Clock } from 'lucide-react';
+import { CheckCircle, DollarSign, Clock, DownloadIcon } from 'lucide-react';
 import { Step } from '@/components/ui/Step';
 
 export function HowItWorksSection() {
@@ -28,7 +28,13 @@ export function HowItWorksSection() {
             description="Realiza el pago correspondiente para asegurar tu participación en el simulacro de examen."
           />
           <Step
-            num="3"
+            num="3" //logo download
+            icon={<DownloadIcon className="h-8 w-8 text-slate-800" />}
+            title="Descargar ficha de inscripcion"
+            description="Una vez confirmado tu pago, y tu foto haya sido aprobada deberaz imprimir tu ficha para poder ingresar a dar tu examen."
+          />
+          <Step
+            num="4"
             icon={<Clock className="h-8 w-8 text-slate-800" />}
             title="Espera la fecha para rendir el examen"
             description="Una vez confirmado tu pago, solo queda esperar al día programado para demostrar tus conocimientos."

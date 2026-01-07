@@ -13,7 +13,7 @@ export function FeaturesSection() {
             Herramientas y recursos diseñados para simular una experiencia real del examen de admisión.
           </p>
         </div>
-        <div className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
           <FeatureCard
             icon={<CheckCircle className="h-6 w-6 text-blue-500" />}
             title="Examen Realista"
@@ -24,11 +24,7 @@ export function FeaturesSection() {
             title="Resultados Detallados"
             description="Obtén un análisis de tu desempeño por área para enfocar mejor tu estudio."
           />
-          <FeatureCard
-            icon={<BookOpen className="h-6 w-6 text-blue-500" />}
-            title="Solucionario Completo"
-            description="Accede a las soluciones explicadas paso a paso para cada una de las preguntas."
-          />
+
         </div>
       </div>
     </section>
