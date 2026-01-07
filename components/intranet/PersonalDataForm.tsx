@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
-import { User, Mail, Phone, FileText, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { User, Mail, Phone, FileText, Loader2, AlertCircle, CheckCircle, Save } from 'lucide-react';
 import { SimulationApplicantService } from '@/lib/services/simulation-applicant.service';
 import { SimulationStorageService } from '@/lib/services/simulation-storage.service';
 import type { SimulationApplicantCreateRequest } from '@/lib/types/exam-simulation.types';
@@ -17,6 +17,7 @@ export function PersonalDataForm() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [isExistingUser, setIsExistingUser] = useState(false);
 
@@ -40,7 +41,7 @@ export function PersonalDataForm() {
     }
   });
 
-  // Cargar datos guardados del localStorage si existen (usuario que ya hizo login)
+  // Cargar datos guardados del localStorage si existen
   useEffect(() => {
     const savedData = SimulationStorageService.getApplicantData();
     if (savedData) {
@@ -52,8 +53,8 @@ export function PersonalDataForm() {
         last_name_mother: savedData.last_name_mother,
         first_names: savedData.first_names,
         email: savedData.email,
-        phone_mobile: '',
-        phone_other: ''
+        phone_mobile: savedData.phone_mobile || '',
+        phone_other: savedData.phone_other || ''
       });
     }
   }, [reset]);
@@ -62,19 +63,11 @@ export function PersonalDataForm() {
 
   const onSubmit = async (data: PersonalDataFormData) => {
     setError(null);
+    setSuccessMessage(null);
     setFieldErrors({});
     setIsLoading(true);
 
     try {
-      // Si es usuario existente (vino del login), solo redirigir
-      if (isExistingUser) {
-        const nextRoute = SimulationStorageService.requiresPhoto()
-          ? '/intranet/personal-photo'
-          : '/intranet/payments-data';
-        router.push(nextRoute);
-        return;
-      }
-
       // Preparar los datos para el API (sin document_type)
       const requestData: SimulationApplicantCreateRequest = {
         dni: data.dni,
@@ -86,21 +79,34 @@ export function PersonalDataForm() {
         phone_other: data.phone_other || undefined
       };
 
-      const response = await SimulationApplicantService.create(requestData);
+      let response;
+      const existingUuid = SimulationStorageService.getApplicantUuid();
+
+      if (isExistingUser && existingUuid) {
+        // Actualizar datos existentes
+        response = await SimulationApplicantService.update(existingUuid, requestData);
+      } else {
+        // Crear nuevo registro
+        response = await SimulationApplicantService.create(requestData);
+      }
 
       if (SimulationApplicantService.isSuccessResponse(response)) {
-        // Guardar el UUID del postulante para futuras consultas
-        SimulationStorageService.setApplicantUuid(response.data.uuid);
+        // Guardar datos completos en localStorage
+        SimulationStorageService.setApplicantData(response.data);
 
-        // Registro exitoso, redirigir según el modo del simulacro
-        // Si requiere foto (presencial), ir a foto; si es virtual, ir a pagos
-        const nextRoute = SimulationStorageService.requiresPhoto()
-          ? '/intranet/personal-photo'
-          : '/intranet/payments-data';
-        router.push(nextRoute);
+        if (isExistingUser) {
+          // Si es actualización, mostrar mensaje de éxito
+          setSuccessMessage('Datos actualizados correctamente');
+        } else {
+          // Si es nuevo registro, redirigir según el modo del simulacro
+          const nextRoute = SimulationStorageService.requiresPhoto()
+            ? '/intranet/personal-photo'
+            : '/intranet/payments-data';
+          router.push(nextRoute);
+        }
       } else {
         // Mostrar errores del servidor
-        setError(response.message || 'Error al registrar. Intente nuevamente.');
+        setError(response.message || 'Error al procesar. Intente nuevamente.');
 
         // Si hay errores de validación por campo
         if ('errors' in response && response.errors) {
@@ -114,6 +120,14 @@ export function PersonalDataForm() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Función para continuar al siguiente paso
+  const handleContinue = () => {
+    const nextRoute = SimulationStorageService.requiresPhoto()
+      ? '/intranet/personal-photo'
+      : '/intranet/payments-data';
+    router.push(nextRoute);
   };
 
   // Función para obtener el error de un campo específico
@@ -140,6 +154,14 @@ export function PersonalDataForm() {
           <div className="mb-6 rounded-md bg-red-50 border border-red-200 p-4 flex items-start gap-3">
             <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
             <p className="text-sm text-red-700">{error}</p>
+          </div>
+        )}
+
+        {/* Mensaje de éxito */}
+        {successMessage && (
+          <div className="mb-6 rounded-md bg-green-50 border border-green-200 p-4 flex items-start gap-3">
+            <CheckCircle className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
+            <p className="text-sm text-green-700">{successMessage}</p>
           </div>
         )}
 
@@ -212,17 +234,14 @@ export function PersonalDataForm() {
                 id="last_name_father"
                 type="text"
                 autoComplete="family-name"
-                readOnly={isExistingUser}
                 {...register('last_name_father', {
                   required: 'El apellido paterno es requerido',
                   minLength: { value: 2, message: 'Mínimo 2 caracteres' }
                 })}
                 className={`block w-full rounded-md border-0 py-2 pl-10 text-slate-900 ring-1 ring-inset ${
-                  isExistingUser
-                    ? 'bg-slate-100 cursor-not-allowed'
-                    : errors.last_name_father || getFieldError('last_name_father')
-                      ? 'ring-red-300 focus:ring-red-500'
-                      : 'ring-slate-300 focus:ring-blue-600'
+                  errors.last_name_father || getFieldError('last_name_father')
+                    ? 'ring-red-300 focus:ring-red-500'
+                    : 'ring-slate-300 focus:ring-blue-600'
                 } placeholder:text-slate-400 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6 transition-all duration-200`}
                 placeholder="Apellido Paterno"
               />
@@ -245,17 +264,14 @@ export function PersonalDataForm() {
                 id="last_name_mother"
                 type="text"
                 autoComplete="family-name"
-                readOnly={isExistingUser}
                 {...register('last_name_mother', {
                   required: 'El apellido materno es requerido',
                   minLength: { value: 2, message: 'Mínimo 2 caracteres' }
                 })}
                 className={`block w-full rounded-md border-0 py-2 pl-10 text-slate-900 ring-1 ring-inset ${
-                  isExistingUser
-                    ? 'bg-slate-100 cursor-not-allowed'
-                    : errors.last_name_mother || getFieldError('last_name_mother')
-                      ? 'ring-red-300 focus:ring-red-500'
-                      : 'ring-slate-300 focus:ring-blue-600'
+                  errors.last_name_mother || getFieldError('last_name_mother')
+                    ? 'ring-red-300 focus:ring-red-500'
+                    : 'ring-slate-300 focus:ring-blue-600'
                 } placeholder:text-slate-400 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6 transition-all duration-200`}
                 placeholder="Apellido Materno"
               />
@@ -278,17 +294,14 @@ export function PersonalDataForm() {
                 id="first_names"
                 type="text"
                 autoComplete="given-name"
-                readOnly={isExistingUser}
                 {...register('first_names', {
                   required: 'Los nombres son requeridos',
                   minLength: { value: 2, message: 'Mínimo 2 caracteres' }
                 })}
                 className={`block w-full rounded-md border-0 py-2 pl-10 text-slate-900 ring-1 ring-inset ${
-                  isExistingUser
-                    ? 'bg-slate-100 cursor-not-allowed'
-                    : errors.first_names || getFieldError('first_names')
-                      ? 'ring-red-300 focus:ring-red-500'
-                      : 'ring-slate-300 focus:ring-blue-600'
+                  errors.first_names || getFieldError('first_names')
+                    ? 'ring-red-300 focus:ring-red-500'
+                    : 'ring-slate-300 focus:ring-blue-600'
                 } placeholder:text-slate-400 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6 transition-all duration-200`}
                 placeholder="Nombres"
               />
@@ -311,7 +324,6 @@ export function PersonalDataForm() {
                 id="email"
                 type="email"
                 autoComplete="email"
-                readOnly={isExistingUser}
                 {...register('email', {
                   required: 'El correo electrónico es requerido',
                   pattern: {
@@ -320,11 +332,9 @@ export function PersonalDataForm() {
                   }
                 })}
                 className={`block w-full rounded-md border-0 py-2 pl-10 text-slate-900 ring-1 ring-inset ${
-                  isExistingUser
-                    ? 'bg-slate-100 cursor-not-allowed'
-                    : errors.email || getFieldError('email')
-                      ? 'ring-red-300 focus:ring-red-500'
-                      : 'ring-slate-300 focus:ring-blue-600'
+                  errors.email || getFieldError('email')
+                    ? 'ring-red-300 focus:ring-red-500'
+                    : 'ring-slate-300 focus:ring-blue-600'
                 } placeholder:text-slate-400 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6 transition-all duration-200`}
                 placeholder="correo@ejemplo.com"
               />
@@ -388,7 +398,8 @@ export function PersonalDataForm() {
             </div>
           </div>
 
-          <div className="pt-4">
+          <div className="pt-4 space-y-3">
+            {/* Botón principal: Registrar o Actualizar */}
             <button
               type="submit"
               disabled={isLoading || !isValid}
@@ -397,15 +408,35 @@ export function PersonalDataForm() {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  {isExistingUser ? 'Procesando...' : 'Registrando...'}
+                  {isExistingUser ? 'Actualizando...' : 'Registrando...'}
                 </>
               ) : (
                 <>
-                  <CheckCircle className="mr-2 h-5 w-5" />
-                  {isExistingUser ? 'Continuar' : 'Registrar Datos'}
+                  {isExistingUser ? (
+                    <>
+                      <Save className="mr-2 h-5 w-5" />
+                      Actualizar Datos
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="mr-2 h-5 w-5" />
+                      Registrar Datos
+                    </>
+                  )}
                 </>
               )}
             </button>
+
+            {/* Botón secundario: Continuar (solo para usuarios existentes) */}
+            {isExistingUser && (
+              <button
+                type="button"
+                onClick={handleContinue}
+                className="w-full flex justify-center items-center rounded-md bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-200 border border-slate-300 transition-all duration-200"
+              >
+                Continuar sin cambios
+              </button>
+            )}
           </div>
         </form>
       </div>

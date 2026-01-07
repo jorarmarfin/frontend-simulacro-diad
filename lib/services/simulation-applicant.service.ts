@@ -7,6 +7,7 @@ import type {
   SimulationApplicantCreateResponse,
   SimulationApplicant,
   UploadPhotoResponse,
+  PhotoStatusResponse,
 } from '@/lib/types/exam-simulation.types';
 
 export class SimulationApplicantService {
@@ -64,6 +65,35 @@ export class SimulationApplicantService {
       return {
         status: 'error',
         message: 'Error al registrar el aplicante. Intente nuevamente.',
+      };
+    }
+  }
+
+  /**
+   * Actualiza los datos de un aplicante existente
+   * @param uuid - UUID del aplicante
+   * @param data - Datos del aplicante a actualizar
+   * @returns Respuesta con el aplicante actualizado o error
+   */
+  static async update(
+    uuid: string,
+    data: SimulationApplicantCreateRequest
+  ): Promise<SimulationApplicantCreateResponse> {
+    try {
+      return await apiClient.put<SimulationApplicantCreateResponse>(
+        API_CONFIG.endpoints.simulationApplicants.update(uuid),
+        data
+      );
+    } catch (error) {
+      console.error('Error updating simulation applicant:', error);
+
+      if (error && typeof error === 'object' && 'status' in error) {
+        return error as SimulationApplicantCreateResponse;
+      }
+
+      return {
+        status: 'error',
+        message: 'Error al actualizar el aplicante. Intente nuevamente.',
       };
     }
   }
@@ -150,6 +180,31 @@ export class SimulationApplicantService {
       return {
         status: 'error',
         message: 'Error al obtener los datos del postulante.',
+      };
+    }
+  }
+
+  /**
+   * Obtiene el estado de la foto del postulante
+   * @param uuid - UUID del postulante
+   * @returns Estado de la foto (pending, approved, rejected, null)
+   */
+  static async getPhotoStatus(uuid: string): Promise<PhotoStatusResponse> {
+    try {
+      return await apiClient.get<PhotoStatusResponse>(
+        API_CONFIG.endpoints.simulationApplicants.photoStatus(uuid)
+      );
+    } catch (error) {
+      console.error('Error getting photo status:', error);
+
+      if (error && typeof error === 'object' && 'status' in error) {
+        return error as PhotoStatusResponse;
+      }
+
+      return {
+        status: 'error',
+        found: false,
+        message: 'Error al obtener el estado de la foto.',
       };
     }
   }

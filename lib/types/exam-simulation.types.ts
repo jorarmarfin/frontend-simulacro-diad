@@ -42,6 +42,8 @@ export interface SimulationApplicant {
   last_name_mother: string;
   first_names: string;
   email: string;
+  phone_mobile: string; // Teléfono móvil
+  phone_other: string | null; // Teléfono alternativo
   exam_description: string;
   photo_url: string | null; // URL de la foto del postulante
   process: SimulationApplicantProcess;
@@ -109,4 +111,16 @@ export interface UploadPhotoErrorResponse {
 export type UploadPhotoResponse =
   | UploadPhotoSuccessResponse
   | UploadPhotoErrorResponse;
+
+// Estados posibles de la foto
+export type PhotoStatus = 'pending' | 'approved' | 'rejected' | null;
+
+// Response del estado de la foto
+export interface PhotoStatusResponse {
+  status: 'success' | 'error';
+  found: boolean;
+  photo_status?: PhotoStatus;
+  photo_rejected_reason?: string; // Solo cuando photo_status es 'rejected'
+  message?: string; // Cuando found es false
+}
 

@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { LogOut } from 'lucide-react';
+import { SimulationStorageService } from '@/lib/services/simulation-storage.service';
 
 /**
  * Botón de cerrar sesión con lógica de navegación
@@ -10,7 +11,9 @@ export function LogoutButton() {
   const router = useRouter();
 
   const handleLogout = () => {
-    // TODO: Implementar lógica de cierre de sesión (limpiar tokens, etc.)
+    // Limpiar todo el localStorage del simulacro
+    SimulationStorageService.clear();
+    // Redirigir al inicio
     router.push('/');
   };
 

@@ -26,6 +26,20 @@ Content-Type: application/json
   "phone_other": "012345678"
 }
 
+### POST request to register a new simulation applicant
+PUT {{host}}/simulation-applicants/7e7b4868-69e2-447d-93ca-d58714db189d
+Content-Type: application/json
+
+{
+  "dni": "15256639",
+  "last_name_father": "Perez",
+  "last_name_mother": "Garcia",
+  "first_names": "Alan",
+  "email": "lolo123@email.com",
+  "phone_mobile": "987654321",
+  "phone_other": "012345678"
+}
+
 ### Descripción: Sube la foto del carné.
 ### Requisitos: Imagen (jpg, png) max 2MB.
 ### Nota: En clientes REST como Postman/Insomnia se usa "Multipart Form". Aqui se simula la petición.
@@ -47,3 +61,15 @@ Accept: application/json
 ### Descripción: Obtiene toda la información del postulante usando su UUID.
 GET {{host}}/simulation-applicants/{{uuid}}
 Accept: application/json
+
+### Status photo
+GET {{host}}/simulation-applicants/20f53e0d-4c76-455e-a2c0-09814c261f0c/photo-status
+Accept: application/json
+
+### Confirmar datos
+PUT {{host}}/simulation-applicants/confirm
+Content-Type: application/json
+
+{
+  "uuid": "947b3a1b-d5c1-4b65-99bf-6099b9dbb355"
+}

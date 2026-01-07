@@ -10,11 +10,14 @@ import {
   AlertCircle,
   Info,
   ImageIcon,
-  Loader2
+  Loader2,
+  XCircle,
+  Clock
 } from 'lucide-react';
 import { useSimulationMode } from '@/lib/hooks/useSimulationMode';
 import { SimulationApplicantService } from '@/lib/services/simulation-applicant.service';
 import { SimulationStorageService } from '@/lib/services/simulation-storage.service';
+import type { PhotoStatus } from '@/lib/types/exam-simulation.types';
 
 export function PersonalPhotoForm() {
   const router = useRouter();
@@ -25,13 +28,33 @@ export function PersonalPhotoForm() {
   const [preview, setPreview] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [existingPhotoUrl, setExistingPhotoUrl] = useState<string | null>(null);
+  const [photoStatus, setPhotoStatus] = useState<PhotoStatus>(null);
+  const [rejectedReason, setRejectedReason] = useState<string | null>(null);
+  const [isLoadingStatus, setIsLoadingStatus] = useState(true);
 
-  // Cargar foto existente desde localStorage al iniciar
+  // Cargar foto existente y estado desde el API al iniciar
   useEffect(() => {
-    const savedData = SimulationStorageService.getApplicantData();
-    if (savedData?.photo_url) {
-      setExistingPhotoUrl(savedData.photo_url);
-    }
+    const loadPhotoStatus = async () => {
+      const savedData = SimulationStorageService.getApplicantData();
+      if (savedData?.photo_url) {
+        setExistingPhotoUrl(savedData.photo_url);
+      }
+
+      // Obtener estado de la foto desde el API
+      const uuid = SimulationStorageService.getApplicantUuid();
+      if (uuid) {
+        const response = await SimulationApplicantService.getPhotoStatus(uuid);
+        if (response.status === 'success' && response.found) {
+          setPhotoStatus(response.photo_status ?? null);
+          if (response.photo_status === 'rejected' && response.photo_rejected_reason) {
+            setRejectedReason(response.photo_rejected_reason);
+          }
+        }
+      }
+      setIsLoadingStatus(false);
+    };
+
+    loadPhotoStatus();
   }, []);
 
   // Validar el archivo seleccionado
@@ -90,6 +113,20 @@ export function PersonalPhotoForm() {
       router.replace('/intranet/payments-data');
     }
   }, [isModeLoading, requiresPhoto, router]);
+
+  // Si está cargando el modo o el estado de la foto, mostrar loading
+  if (isModeLoading || isLoadingStatus) {
+    return (
+      <div className="w-full max-w-2xl mx-auto">
+        <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-8">
+          <div className="flex flex-col items-center justify-center py-12">
+            <Loader2 className="h-10 w-10 animate-spin text-blue-600 mb-4" />
+            <p className="text-slate-600">Cargando información...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Manejar cambio en el input file
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -248,28 +285,114 @@ export function PersonalPhotoForm() {
           </div>
         )}
 
+        {/* Alerta de foto RECHAZADA - Muy evidente */}
+        {photoStatus === 'rejected' && (
+          <div className="mb-6 rounded-lg bg-red-100 border-2 border-red-400 p-6 shadow-md">
+            <div className="flex items-start gap-4">
+              <div className="shrink-0">
+                <XCircle className="h-10 w-10 text-red-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-red-800 mb-2">
+                  ⚠️ Tu foto ha sido RECHAZADA
+                </h3>
+                <div className="bg-white rounded-md p-3 border border-red-300 mb-3">
+                  <p className="text-sm font-medium text-red-700">Motivo del rechazo:</p>
+                  <p className="text-base text-red-900 font-semibold mt-1">
+                    {rejectedReason || 'No se especificó un motivo'}
+                  </p>
+                </div>
+                <p className="text-sm text-red-700">
+                  Por favor, sube una nueva foto que cumpla con los requisitos indicados.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Foto existente (ya cargada previamente) */}
         {existingPhotoUrl && !preview && (
-          <div className="mb-6 rounded-lg bg-green-50 border-2 border-green-300 p-6">
+          <div className={`mb-6 rounded-lg p-6 ${
+            photoStatus === 'rejected' 
+              ? 'bg-red-50 border-2 border-red-300' 
+              : photoStatus === 'approved'
+                ? 'bg-green-50 border-2 border-green-300'
+                : photoStatus === 'pending'
+                  ? 'bg-amber-50 border-2 border-amber-300'
+                  : 'bg-slate-50 border-2 border-slate-300'
+          }`}>
             <div className="flex flex-col sm:flex-row items-center gap-6">
               {/* Imagen existente */}
               <div className="relative">
                 <img
                   src={existingPhotoUrl}
                   alt="Foto del postulante"
-                  className="w-40 h-48 object-cover rounded-lg shadow-md border-2 border-white"
+                  className={`w-40 h-48 object-cover rounded-lg shadow-md border-2 ${
+                    photoStatus === 'rejected' ? 'border-red-300' : 'border-white'
+                  }`}
                 />
+                {/* Badge de estado sobre la foto */}
+                {photoStatus && (
+                  <div className={`absolute -top-2 -right-2 px-2 py-1 rounded-full text-xs font-bold ${
+                    photoStatus === 'approved' 
+                      ? 'bg-green-500 text-white' 
+                      : photoStatus === 'rejected'
+                        ? 'bg-red-500 text-white'
+                        : 'bg-amber-500 text-white'
+                  }`}>
+                    {photoStatus === 'approved' && '✓ Aprobada'}
+                    {photoStatus === 'rejected' && '✗ Rechazada'}
+                    {photoStatus === 'pending' && '⏳ En revisión'}
+                  </div>
+                )}
               </div>
 
-              {/* Info */}
+              {/* Info según estado */}
               <div className="flex-1 text-center sm:text-left">
-                <div className="flex items-center justify-center sm:justify-start gap-2 text-green-700 mb-2">
-                  <CheckCircle className="h-5 w-5" />
-                  <span className="font-semibold">Foto registrada exitosamente</span>
-                </div>
-                <p className="text-sm text-slate-600 mb-3">
-                  Tu foto ya ha sido cargada en el sistema. Si deseas cambiarla, puedes seleccionar una nueva.
-                </p>
+                {photoStatus === 'approved' && (
+                  <>
+                    <div className="flex items-center justify-center sm:justify-start gap-2 text-green-700 mb-2">
+                      <CheckCircle className="h-5 w-5" />
+                      <span className="font-semibold">Foto aprobada</span>
+                    </div>
+                    <p className="text-sm text-slate-600 mb-3">
+                      Tu foto ha sido verificada y aprobada exitosamente.
+                    </p>
+                  </>
+                )}
+                {photoStatus === 'pending' && (
+                  <>
+                    <div className="flex items-center justify-center sm:justify-start gap-2 text-amber-700 mb-2">
+                      <Clock className="h-5 w-5" />
+                      <span className="font-semibold">Foto en revisión</span>
+                    </div>
+                    <p className="text-sm text-slate-600 mb-3">
+                      Tu foto está siendo revisada. Este proceso puede tomar hasta 24 horas.
+                    </p>
+                  </>
+                )}
+                {photoStatus === 'rejected' && (
+                  <>
+                    <div className="flex items-center justify-center sm:justify-start gap-2 text-red-700 mb-2">
+                      <XCircle className="h-5 w-5" />
+                      <span className="font-semibold">Debes subir una nueva foto</span>
+                    </div>
+                    <p className="text-sm text-red-600 mb-3">
+                      Selecciona una nueva foto que cumpla con todos los requisitos.
+                    </p>
+                  </>
+                )}
+                {!photoStatus && (
+                  <>
+                    <div className="flex items-center justify-center sm:justify-start gap-2 text-green-700 mb-2">
+                      <CheckCircle className="h-5 w-5" />
+                      <span className="font-semibold">Foto registrada</span>
+                    </div>
+                    <p className="text-sm text-slate-600 mb-3">
+                      Tu foto ya ha sido cargada en el sistema.
+                    </p>
+                  </>
+                )}
                 <button
                   type="button"
                   onClick={handleOpenFileDialog}
@@ -372,8 +495,8 @@ export function PersonalPhotoForm() {
 
         {/* Botón de envío */}
         <div className="pt-4">
-          {/* Si ya existe foto y no hay nueva seleccionada, solo continuar */}
-          {existingPhotoUrl && !selectedFile ? (
+          {/* Si ya existe foto aprobada/pendiente y no hay nueva seleccionada, solo continuar */}
+          {existingPhotoUrl && !selectedFile && photoStatus !== 'rejected' ? (
             <button
               type="button"
               onClick={() => router.push('/intranet/payments-data')}

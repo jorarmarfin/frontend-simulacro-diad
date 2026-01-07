@@ -48,12 +48,13 @@ export class SimulationStorageService {
   }
 
   /**
-   * Limpia los datos del storage
+   * Limpia todos los datos del storage (logout)
    */
   static clear(): void {
     if (typeof window !== 'undefined') {
       localStorage.removeItem(STORAGE_KEYS.IS_VIRTUAL);
       localStorage.removeItem(STORAGE_KEYS.APPLICANT_UUID);
+      localStorage.removeItem(STORAGE_KEYS.APPLICANT_DATA);
     }
   }
 
