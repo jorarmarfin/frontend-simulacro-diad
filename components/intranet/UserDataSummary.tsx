@@ -1,19 +1,23 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   User,
   Mail,
   FileText,
   CheckCircle,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Edit,
+  Camera
 } from 'lucide-react';
 import { SimulationStorageService } from '@/lib/services/simulation-storage.service';
 import { SimulationApplicantService } from '@/lib/services/simulation-applicant.service';
 import type { SimulationApplicant } from '@/lib/types/exam-simulation.types';
 
 export function UserDataSummary() {
+  const router = useRouter();
   const [userData, setUserData] = useState<SimulationApplicant | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isConfirmed, setIsConfirmed] = useState(false);
@@ -48,22 +52,36 @@ export function UserDataSummary() {
     const data = SimulationStorageService.getApplicantData();
     setUserData(data);
 
-    // Verificar si puede confirmar
-    if (data) {
-      const hasPersonalData = data.process.pre_registration !== null;
-      const hasPayment = data.process.payment !== null;
-      const requiresPhoto = SimulationStorageService.requiresPhoto();
-      const hasPhoto = !requiresPhoto || (data.photo_url !== null);
-
-      // Puede confirmar si tiene todos los pasos previos completos
-      setCanConfirm(hasPersonalData && hasPayment && hasPhoto);
-    }
-
     // Cargar el estado del proceso si hay datos
     if (data?.uuid) {
       loadProcessStatus(data.uuid);
     }
   }, []);
+
+  // Recalcular canConfirm cada vez que userData cambie
+  useEffect(() => {
+    if (userData) {
+      const hasPersonalData = userData.process.pre_registration !== null;
+      const hasPayment = userData.process.payment !== null;
+      const requiresPhoto = SimulationStorageService.requiresPhoto();
+      const hasPhotoReviewed = !requiresPhoto || (userData.process.photo_reviewed_at !== null);
+
+      // Debug: Ver valores
+      console.log('🔍 Validación de confirmación:', {
+        hasPersonalData,
+        hasPayment,
+        requiresPhoto,
+        hasPhotoReviewed,
+        photo_reviewed_at: userData.process.photo_reviewed_at,
+        canConfirm: hasPersonalData && hasPayment && hasPhotoReviewed
+      });
+
+      // Puede confirmar si tiene todos los pasos previos completos
+      setCanConfirm(hasPersonalData && hasPayment && hasPhotoReviewed);
+    } else {
+      setCanConfirm(false);
+    }
+  }, [userData]); // Se ejecuta cada vez que userData cambie
 
   // Función para confirmar datos
   const handleConfirmData = async () => {
@@ -224,28 +242,37 @@ export function UserDataSummary() {
         <div className="mb-8">
           <h3 className="text-sm font-medium text-slate-700 mb-3">Estado del proceso</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {/* Pre-registro */}
             <div className={`rounded-lg p-3 text-center ${userData.process.pre_registration ? 'bg-green-50 border border-green-200' : 'bg-slate-50 border border-slate-200'}`}>
               <p className="text-xs text-slate-500 mb-1">Pre-registro</p>
               <p className={`text-sm font-medium ${userData.process.pre_registration ? 'text-green-700' : 'text-slate-400'}`}>
                 {userData.process.pre_registration || 'Pendiente'}
               </p>
             </div>
+
+            {/* Pago */}
             <div className={`rounded-lg p-3 text-center ${userData.process.payment ? 'bg-green-50 border border-green-200' : 'bg-slate-50 border border-slate-200'}`}>
               <p className="text-xs text-slate-500 mb-1">Pago</p>
               <p className={`text-sm font-medium ${userData.process.payment ? 'text-green-700' : 'text-slate-400'}`}>
                 {userData.process.payment || 'Pendiente'}
               </p>
             </div>
+
+            {/* Foto Revisada - Solo mostrar si el simulacro requiere foto */}
+            {SimulationStorageService.requiresPhoto() && (
+              <div className={`rounded-lg p-3 text-center ${userData.process.photo_reviewed_at ? 'bg-green-50 border border-green-200' : 'bg-slate-50 border border-slate-200'}`}>
+                <p className="text-xs text-slate-500 mb-1">Foto Revisada</p>
+                <p className={`text-sm font-medium ${userData.process.photo_reviewed_at ? 'text-green-700' : 'text-slate-400'}`}>
+                  {userData.process.photo_reviewed_at || 'Pendiente'}
+                </p>
+              </div>
+            )}
+
+            {/* Confirmación */}
             <div className={`rounded-lg p-3 text-center ${userData.process.confirmation ? 'bg-green-50 border border-green-200' : 'bg-slate-50 border border-slate-200'}`}>
               <p className="text-xs text-slate-500 mb-1">Confirmación</p>
               <p className={`text-sm font-medium ${userData.process.confirmation ? 'text-green-700' : 'text-slate-400'}`}>
                 {userData.process.confirmation || 'Pendiente'}
-              </p>
-            </div>
-            <div className={`rounded-lg p-3 text-center ${userData.process.registration ? 'bg-green-50 border border-green-200' : 'bg-slate-50 border border-slate-200'}`}>
-              <p className="text-xs text-slate-500 mb-1">Inscripción</p>
-              <p className={`text-sm font-medium ${userData.process.registration ? 'text-green-700' : 'text-slate-400'}`}>
-                {userData.process.registration || 'Pendiente'}
               </p>
             </div>
           </div>
@@ -262,7 +289,7 @@ export function UserDataSummary() {
               <ul className="text-sm text-amber-700 space-y-1 list-disc list-inside">
                 {!userData?.process.pre_registration && <li>Registra tus datos personales</li>}
                 {!userData?.process.payment && <li>Realiza el pago del simulacro</li>}
-                {SimulationStorageService.requiresPhoto() && !userData?.photo_url && <li>Sube tu fotografía</li>}
+                {SimulationStorageService.requiresPhoto() && !userData?.process.photo_reviewed_at && <li>Espera que tu fotografía sea revisada</li>}
               </ul>
             </div>
           </div>
@@ -285,6 +312,31 @@ export function UserDataSummary() {
             <p className="text-red-700 font-medium">
               {errorMessage}
             </p>
+          </div>
+        )}
+
+        {/* Botones de navegación/edición - Solo si no ha confirmado */}
+        {!isConfirmed && !userData?.process.confirmation && (
+          <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <button
+              type="button"
+              onClick={() => router.push('/intranet/payments-data')}
+              className="flex justify-center items-center rounded-md bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-200 border border-slate-300 transition-all duration-200"
+            >
+              <Edit className="mr-2 h-5 w-5" />
+              Ver Datos de Pago
+            </button>
+
+            {SimulationStorageService.requiresPhoto() && (
+              <button
+                type="button"
+                onClick={() => router.push('/intranet/personal-photo')}
+                className="flex justify-center items-center rounded-md bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-200 border border-slate-300 transition-all duration-200"
+              >
+                <Camera className="mr-2 h-5 w-5" />
+                Editar Fotografía
+              </button>
+            )}
           </div>
         )}
 

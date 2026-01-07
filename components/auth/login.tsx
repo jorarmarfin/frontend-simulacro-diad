@@ -43,7 +43,7 @@ export const Login = () => {
         setIsLoading(true);
 
         try {
-            // Buscar postulante por DNI y email
+            // 1. Buscar postulante por DNI y email
             const searchResponse = await SimulationApplicantService.search({
                 dni: data.dni,
                 email: data.email
@@ -53,15 +53,42 @@ export const Login = () => {
                 // Limpiar datos anteriores del usuario
                 SimulationStorageService.clearApplicantData();
 
-                // Obtener datos completos del postulante usando el UUID
+                // 2. Obtener datos completos del postulante usando el UUID
                 const uuid = searchResponse.data.uuid;
                 const fullDataResponse = await SimulationApplicantService.getByUuid(uuid);
 
                 if (SimulationApplicantService.isSuccessResponse(fullDataResponse)) {
-                    // Guardar datos completos en localStorage
-                    SimulationStorageService.setApplicantData(fullDataResponse.data);
-                    // Redirigir a página de datos personales
-                    router.push('/intranet/personal-data');
+                    const applicantData = fullDataResponse.data;
+
+                    // 3. Obtener el estado del proceso
+                    const processResponse = await SimulationApplicantService.getProcessStatus(uuid);
+
+                    if (processResponse.status === 'success') {
+                        // Actualizar los datos con el estado del proceso más reciente
+                        const updatedData = {
+                            ...applicantData,
+                            process: processResponse.data.process
+                        };
+
+                        // Guardar datos completos en localStorage
+                        SimulationStorageService.setApplicantData(updatedData);
+
+                        // 4. Verificar si ya confirmó sus datos
+                        const hasConfirmed = processResponse.data.process.confirmation !== null;
+
+                        if (hasConfirmed) {
+                            // Si ya confirmó, redirigir directamente a la página final (ficha)
+                            router.push('/intranet/final');
+                        } else {
+                            // Si no ha confirmado, redirigir a la página de datos personales
+                            // (donde se mostrará el summary para que pueda editar o confirmar)
+                            router.push('/intranet/personal-data');
+                        }
+                    } else {
+                        // Si falla obtener el estado del proceso, guardar los datos básicos
+                        SimulationStorageService.setApplicantData(applicantData);
+                        router.push('/intranet/personal-data');
+                    }
                 } else {
                     // Si falla obtener datos completos, guardar los básicos
                     SimulationStorageService.setApplicantData(searchResponse.data);

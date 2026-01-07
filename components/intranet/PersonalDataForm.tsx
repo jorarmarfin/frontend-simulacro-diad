@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form';
 import { User, Mail, Phone, FileText, Loader2, AlertCircle, CheckCircle, Save } from 'lucide-react';
 import { SimulationApplicantService } from '@/lib/services/simulation-applicant.service';
 import { SimulationStorageService } from '@/lib/services/simulation-storage.service';
+import { UserDataSummary } from '@/components/intranet/UserDataSummary';
 import type { SimulationApplicantCreateRequest } from '@/lib/types/exam-simulation.types';
 
 // Tipo del formulario (extiende el request con campos adicionales del form)
@@ -20,6 +21,7 @@ export function PersonalDataForm() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [isExistingUser, setIsExistingUser] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
 
   const {
     register,
@@ -46,16 +48,26 @@ export function PersonalDataForm() {
     const savedData = SimulationStorageService.getApplicantData();
     if (savedData) {
       setIsExistingUser(true);
-      reset({
-        document_type: 'DNI',
-        dni: savedData.dni,
-        last_name_father: savedData.last_name_father,
-        last_name_mother: savedData.last_name_mother,
-        first_names: savedData.first_names,
-        email: savedData.email,
-        phone_mobile: savedData.phone_mobile || '',
-        phone_other: savedData.phone_other || ''
-      });
+
+      // Verificar si tiene pre_registration (ya completó el paso de datos personales)
+      const hasPreRegistration = savedData.process.pre_registration !== null;
+
+      if (hasPreRegistration) {
+        // Si ya tiene pre_registration, mostrar el summary
+        setShowSummary(true);
+      } else {
+        // Si no tiene pre_registration, mostrar el formulario para completar
+        reset({
+          document_type: 'DNI',
+          dni: savedData.dni,
+          last_name_father: savedData.last_name_father,
+          last_name_mother: savedData.last_name_mother,
+          first_names: savedData.first_names,
+          email: savedData.email,
+          phone_mobile: savedData.phone_mobile || '',
+          phone_other: savedData.phone_other || ''
+        });
+      }
     }
   }, [reset]);
 
@@ -134,6 +146,11 @@ export function PersonalDataForm() {
   const getFieldError = (fieldName: string): string | undefined => {
     return fieldErrors[fieldName]?.[0];
   };
+
+  // Si debe mostrar el summary (usuario existente con pre_registration completo)
+  if (showSummary) {
+    return <UserDataSummary />;
+  }
 
   return (
     <div className="w-full max-w-2xl mx-auto">

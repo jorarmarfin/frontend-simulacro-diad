@@ -25,13 +25,13 @@ export function HowItWorksSection() {
             num="2"
             icon={<DollarSign className="h-8 w-8 text-slate-800" />}
             title="Realiza el Pago"
-            description="Realiza el pago correspondiente para asegurar tu participación en el simulacro de examen."
+            description="Completa el pago correspondiente para asegurar tu participación en el simulacro de examen."
           />
           <Step
             num="3" //logo download
             icon={<DownloadIcon className="h-8 w-8 text-slate-800" />}
             title="Descargar ficha de inscripcion"
-            description="Una vez confirmado tu pago, y tu foto haya sido aprobada deberaz imprimir tu ficha para poder ingresar a dar tu examen."
+            description="Descarga e imprime tu ficha de inscripción. Este documento es fundamental para poder ingresar a dar la prueba."
           />
           <Step
             num="4"

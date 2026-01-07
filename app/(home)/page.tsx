@@ -24,6 +24,7 @@ export default async function HomePage() {
     let isVirtual = false;
     let dateStart = '';
     let dateEnd = '';
+    let examDate = null;
 
     try {
         const response = await ExamSimulationService.checkActiveSimulation();
@@ -31,6 +32,7 @@ export default async function HomePage() {
         isVirtual = response.data.is_virtual ?? false;
         dateStart = response.data.exam_date_start ?? '';
         dateEnd = response.data.exam_date_end ?? '';
+        examDate = response.data.exam_date ?? null;
     } catch (error) {
         // Si hay error en el API, mostrar como no activo
         console.error('Error al verificar simulacro activo:', error);
@@ -50,6 +52,7 @@ export default async function HomePage() {
                             <SimulationDates
                                 dateStart={dateStart}
                                 dateEnd={dateEnd}
+                                examDate={examDate}
                                 isVirtual={isVirtual}
                             />
                         )}

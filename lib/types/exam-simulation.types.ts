@@ -14,8 +14,9 @@ export interface ExamSimulationStatusResponse {
     status: 'success' | 'error';
     is_active: boolean;
     description?: string;
-    exam_date_start?: string;
-    exam_date_end?: string;
+    exam_date_start?: string; // Fecha inicio de inscripciones
+    exam_date_end?: string; // Fecha fin de inscripciones
+    exam_date?: string | null; // Fecha del examen
     is_virtual?: boolean; // Indica si el examen es virtual o presencial
     message?: string;
   };
@@ -29,6 +30,7 @@ export interface SimulationApplicantSearchRequest {
 export interface SimulationApplicantProcess {
   pre_registration: string | null;
   payment: string | null;
+  photo_reviewed_at: string | null; // Fecha de revisión de la foto (nuevo campo)
   confirmation: string | null; // Nombre actualizado para coincidir con el API
   registration: string | null;
 }

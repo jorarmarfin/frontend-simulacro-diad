@@ -1,4 +1,5 @@
-@host=http://backend-inscripcion.local/api
+#@host=http://backend-inscripcion.local/api
+@host=https://backend-inscripciones.admision.uni.edu.pe/api
 
 ### GET request to example server
 GET {{host}}/exam-simulations
@@ -8,8 +9,8 @@ POST {{host}}/simulation-applicants/search
 Content-Type: application/json
 
 {
-  "dni": "41887192",
-  "email": "luis.mayta@drinux.com"
+  "dni": "43566014",
+  "email": "caty_matias27@hotmail.com"
 }
 
 ### POST request to register a new simulation applicant
@@ -59,7 +60,7 @@ GET {{host}}/simulation-applicants/947b3a1b-d5c1-4b65-99bf-6099b9dbb355
 Accept: application/json
 
 ### Descripción: Obtiene toda la información del postulante usando su UUID.
-GET {{host}}/simulation-applicants/{{uuid}}
+GET {{host}}/simulation-applicants/fd4f2608-4f96-4ab8-9c8b-5ba33e0e2293
 Accept: application/json
 
 ### Status photo
@@ -71,8 +72,8 @@ PUT {{host}}/simulation-applicants/confirm
 Content-Type: application/json
 
 {
-  "uuid": "947b3a1b-d5c1-4b65-99bf-6099b9dbb355"
+  "uuid": "fd4f2608-4f96-4ab8-9c8b-5ba33e0e2293"
 }
 
 ### Process
-GET {{host}}/simulation-applicants/947b3a1b-d5c1-4b65-99bf-6099b9dbb355/status
+GET {{host}}/simulation-applicants/fd4f2608-4f96-4ab8-9c8b-5ba33e0e2293/status

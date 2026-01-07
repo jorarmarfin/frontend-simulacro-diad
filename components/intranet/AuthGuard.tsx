@@ -40,11 +40,11 @@ export function AuthGuard({ children }: AuthGuardProps) {
     const hasPersonalData = userData?.process?.pre_registration !== null;
     const hasPayment = userData?.process?.payment !== null;
     const requiresPhoto = SimulationStorageService.requiresPhoto();
-    const hasPhoto = !requiresPhoto || (userData?.photo_url !== null);
+    const hasPhotoReviewed = !requiresPhoto || (userData?.process?.photo_reviewed_at !== null);
     const hasConfirmation = userData?.process?.confirmation !== null;
 
     // Solo está confirmado si tiene confirmación Y todos los pasos previos
-    const isConfirmed = hasConfirmation && hasPersonalData && hasPayment && hasPhoto;
+    const isConfirmed = hasConfirmation && hasPersonalData && hasPayment && hasPhotoReviewed;
 
     const isFinalPage = pathname === '/intranet/final';
 
