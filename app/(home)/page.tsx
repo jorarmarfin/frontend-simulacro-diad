@@ -9,6 +9,11 @@ import {CTASection} from '@/components/home/CTASection';
 import {RegistrationStatus} from '@/components/home/RegistrationStatus';
 import {SimulationDates} from '@/components/home/SimulationDates';
 import {ExamSimulationService} from '@/lib/services/exam-simulation.service';
+
+// Deshabilitar el caché de la página para obtener datos frescos siempre
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export const metadata: Metadata = {
     title: " Simulacro de Admision UNI - Página Principal",
     description: "Prepárate para tu admisión a la UNI con nuestro simulacro de examen en línea. Regístrate ahora y mejora tus habilidades.",

@@ -79,7 +79,13 @@ class ApiClient {
    * Petición GET
    */
   async get<T>(endpoint: string, config?: RequestConfig): Promise<T> {
-    return this.request<T>(endpoint, { ...config, method: 'GET' });
+    return this.request<T>(endpoint, {
+      ...config,
+      method: 'GET',
+      // Deshabilitar caché de Next.js para obtener datos frescos siempre
+      cache: 'no-store',
+      next: { revalidate: 0 }
+    });
   }
 
   /**

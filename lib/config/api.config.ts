@@ -16,6 +16,7 @@ const API_CONFIG = {
       status: (uuid: string) => `/simulation-applicants/${uuid}/status`,
     },
   },
+  timeout: 30000, // 30 segundos
 } as const;
 
 export { API_CONFIG };
