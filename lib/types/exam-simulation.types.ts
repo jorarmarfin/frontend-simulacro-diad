@@ -29,7 +29,7 @@ export interface SimulationApplicantSearchRequest {
 export interface SimulationApplicantProcess {
   pre_registration: string | null;
   payment: string | null;
-  data_confirmation: string | null;
+  confirmation: string | null; // Nombre actualizado para coincidir con el API
   registration: string | null;
 }
 
@@ -123,4 +123,45 @@ export interface PhotoStatusResponse {
   photo_rejected_reason?: string; // Solo cuando photo_status es 'rejected'
   message?: string; // Cuando found es false
 }
+
+// Request para confirmar datos del postulante
+export interface ConfirmApplicantRequest {
+  uuid: string;
+}
+
+// Response al confirmar datos exitosamente
+export interface ConfirmApplicantSuccessResponse {
+  status: 'success';
+  message: string;
+  data?: SimulationApplicant;
+}
+
+// Response de error al confirmar
+export interface ConfirmApplicantErrorResponse {
+  status: 'error';
+  message: string;
+  errors?: Record<string, string[]>;
+}
+
+export type ConfirmApplicantResponse =
+  | ConfirmApplicantSuccessResponse
+  | ConfirmApplicantErrorResponse;
+
+// Response del estado del proceso de registro
+export interface ProcessStatusSuccessResponse {
+  status: 'success';
+  message: string;
+  data: {
+    process: SimulationApplicantProcess;
+  };
+}
+
+export interface ProcessStatusErrorResponse {
+  status: 'error';
+  message: string;
+}
+
+export type ProcessStatusResponse =
+  | ProcessStatusSuccessResponse
+  | ProcessStatusErrorResponse;
 

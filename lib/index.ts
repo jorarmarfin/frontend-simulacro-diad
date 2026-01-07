@@ -8,21 +8,37 @@ export { ExamSimulationService } from './services/exam-simulation.service';
 export { SimulationApplicantService } from './services/simulation-applicant.service';
 
 // Hooks
-export { useExamSimulations, useExamSimulation } from './hooks/useExamSimulations';
 export { useSimulationApplicantSearch } from './hooks/useSimulationApplicantSearch';
+export { useActiveSimulation } from './hooks/useActiveSimulation';
+export { useAuthGuard } from './hooks/useAuthGuard';
+export { useSimulationMode } from './hooks/useSimulationMode';
 
 // Tipos
 export type {
-  ExamSimulation,
-  ExamSimulationsResponse,
-  ExamSimulationStatusResponse,
   ApiError,
+  ExamSimulationStatusResponse,
   SimulationApplicantSearchRequest,
   SimulationApplicantSearchResponse,
   SimulationApplicant,
   SimulationApplicantProcess,
   SimulationApplicantSuccessResponse,
   SimulationApplicantErrorResponse,
+  SimulationApplicantCreateRequest,
+  SimulationApplicantCreateResponse,
+  SimulationApplicantCreateSuccessResponse,
+  SimulationApplicantCreateErrorResponse,
+  UploadPhotoResponse,
+  UploadPhotoSuccessResponse,
+  UploadPhotoErrorResponse,
+  PhotoStatus,
+  PhotoStatusResponse,
+  ConfirmApplicantRequest,
+  ConfirmApplicantResponse,
+  ConfirmApplicantSuccessResponse,
+  ConfirmApplicantErrorResponse,
+  ProcessStatusResponse,
+  ProcessStatusSuccessResponse,
+  ProcessStatusErrorResponse,
 } from './types/exam-simulation.types';
 
 // Configuración

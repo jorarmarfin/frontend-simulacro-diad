@@ -8,6 +8,9 @@ import type {
   SimulationApplicant,
   UploadPhotoResponse,
   PhotoStatusResponse,
+  ConfirmApplicantRequest,
+  ConfirmApplicantResponse,
+  ProcessStatusResponse,
 } from '@/lib/types/exam-simulation.types';
 
 export class SimulationApplicantService {
@@ -180,6 +183,59 @@ export class SimulationApplicantService {
       return {
         status: 'error',
         message: 'Error al obtener los datos del postulante.',
+      };
+    }
+  }
+
+  /**
+   * Confirma los datos del postulante
+   * @param uuid - UUID del postulante
+   * @returns Respuesta con el resultado de la confirmación
+   */
+  static async confirm(uuid: string): Promise<ConfirmApplicantResponse> {
+    try {
+      const requestData: ConfirmApplicantRequest = { uuid };
+
+      return await apiClient.put<ConfirmApplicantResponse>(
+        API_CONFIG.endpoints.simulationApplicants.confirm,
+        requestData
+      );
+    } catch (error) {
+      console.error('Error confirming applicant data:', error);
+
+      // Si es un error de la API con respuesta estructurada
+      if (error && typeof error === 'object' && 'status' in error) {
+        return error as ConfirmApplicantResponse;
+      }
+
+      // Error genérico
+      return {
+        status: 'error',
+        message: 'Error al confirmar los datos. Intente nuevamente.',
+      };
+    }
+  }
+
+  /**
+   * Obtiene el estado del proceso de registro del postulante
+   * @param uuid - UUID del postulante
+   * @returns Estado actual del proceso (pre_registration, payment, confirmation, registration)
+   */
+  static async getProcessStatus(uuid: string): Promise<ProcessStatusResponse> {
+    try {
+      return await apiClient.get<ProcessStatusResponse>(
+        API_CONFIG.endpoints.simulationApplicants.status(uuid)
+      );
+    } catch (error) {
+      console.error('Error getting process status:', error);
+
+      if (error && typeof error === 'object' && 'status' in error) {
+        return error as ProcessStatusResponse;
+      }
+
+      return {
+        status: 'error',
+        message: 'Error al obtener el estado del proceso.',
       };
     }
   }

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { UserDataSummary } from '@/components/intranet/UserDataSummary';
+import { FinalPageContent } from '@/components/intranet/FinalPageContent';
 
 export const metadata: Metadata = {
   title: "Resumen de Inscripción - Simulacro UNI",
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 }
 
 export default function FinalPage() {
-  return <UserDataSummary />;
+  return <FinalPageContent />;
 }

@@ -10,28 +10,84 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { SimulationStorageService } from '@/lib/services/simulation-storage.service';
+import { SimulationApplicantService } from '@/lib/services/simulation-applicant.service';
 import type { SimulationApplicant } from '@/lib/types/exam-simulation.types';
 
 export function UserDataSummary() {
   const [userData, setUserData] = useState<SimulationApplicant | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isConfirmed, setIsConfirmed] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Función para cargar el estado del proceso
+  const loadProcessStatus = async (uuid: string) => {
+    try {
+      const response = await SimulationApplicantService.getProcessStatus(uuid);
+
+      if (response.status === 'success' && response.data?.process) {
+        // Actualizar solo el proceso en userData
+        setUserData(prevData => {
+          if (!prevData) return null;
+          const updatedData = {
+            ...prevData,
+            process: response.data.process,
+          };
+          // Actualizar también en localStorage
+          SimulationStorageService.setApplicantData(updatedData);
+          return updatedData;
+        });
+      }
+    } catch (error) {
+      console.error('Error al cargar estado del proceso:', error);
+    }
+  };
 
   // Cargar datos del usuario desde localStorage
   useEffect(() => {
     const data = SimulationStorageService.getApplicantData();
     setUserData(data);
+
+    // Cargar el estado del proceso si hay datos
+    if (data?.uuid) {
+      loadProcessStatus(data.uuid);
+    }
   }, []);
 
-  // Función para confirmar datos (aquí va la lógica futura)
+  // Función para confirmar datos
   const handleConfirmData = async () => {
+    if (!userData?.uuid) {
+      setErrorMessage('No se encontró el identificador del postulante');
+      return;
+    }
+
     setIsLoading(true);
+    setErrorMessage(null);
+
     try {
-      // TODO: Implementar lógica de confirmación con el API
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Placeholder
-      setIsConfirmed(true);
+      const response = await SimulationApplicantService.confirm(userData.uuid);
+
+      if (response.status === 'success') {
+        setIsConfirmed(true);
+
+        // Actualizar los datos en localStorage si vienen en la respuesta
+        if (response.data) {
+          SimulationStorageService.setApplicantData(response.data);
+          setUserData(response.data);
+        }
+
+        // Recargar el estado del proceso después de confirmar
+        await loadProcessStatus(userData.uuid);
+
+        // Recargar la página después de 1 segundo para mostrar la ficha
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        setErrorMessage(response.message || 'Error al confirmar los datos');
+      }
     } catch (error) {
       console.error('Error al confirmar datos:', error);
+      setErrorMessage('Error inesperado al confirmar los datos. Intente nuevamente.');
     } finally {
       setIsLoading(false);
     }
@@ -66,7 +122,7 @@ export function UserDataSummary() {
         {/* Foto y datos principales */}
         <div className="flex flex-col md:flex-row gap-8 mb-8">
           {/* Foto del postulante */}
-          <div className="flex-shrink-0">
+          <div className="shrink-0">
             <div className="w-40 h-48 mx-auto md:mx-0 rounded-lg overflow-hidden border-2 border-slate-200 shadow-md bg-slate-100">
               {userData.photo_url ? (
                 <img
@@ -168,10 +224,10 @@ export function UserDataSummary() {
                 {userData.process.payment || 'Pendiente'}
               </p>
             </div>
-            <div className={`rounded-lg p-3 text-center ${userData.process.data_confirmation ? 'bg-green-50 border border-green-200' : 'bg-slate-50 border border-slate-200'}`}>
+            <div className={`rounded-lg p-3 text-center ${userData.process.confirmation ? 'bg-green-50 border border-green-200' : 'bg-slate-50 border border-slate-200'}`}>
               <p className="text-xs text-slate-500 mb-1">Confirmación</p>
-              <p className={`text-sm font-medium ${userData.process.data_confirmation ? 'text-green-700' : 'text-slate-400'}`}>
-                {userData.process.data_confirmation || 'Pendiente'}
+              <p className={`text-sm font-medium ${userData.process.confirmation ? 'text-green-700' : 'text-slate-400'}`}>
+                {userData.process.confirmation || 'Pendiente'}
               </p>
             </div>
             <div className={`rounded-lg p-3 text-center ${userData.process.registration ? 'bg-green-50 border border-green-200' : 'bg-slate-50 border border-slate-200'}`}>
@@ -189,6 +245,16 @@ export function UserDataSummary() {
             <CheckCircle className="h-5 w-5 text-green-600" />
             <p className="text-green-700 font-medium">
               ¡Datos confirmados exitosamente!
+            </p>
+          </div>
+        )}
+
+        {/* Mensaje de error */}
+        {errorMessage && (
+          <div className="mb-6 rounded-lg bg-red-50 border border-red-200 p-4 flex items-center gap-3">
+            <AlertCircle className="h-5 w-5 text-red-600" />
+            <p className="text-red-700 font-medium">
+              {errorMessage}
             </p>
           </div>
         )}

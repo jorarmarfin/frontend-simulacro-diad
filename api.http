@@ -73,3 +73,6 @@ Content-Type: application/json
 {
   "uuid": "947b3a1b-d5c1-4b65-99bf-6099b9dbb355"
 }
+
+### Process
+GET {{host}}/simulation-applicants/947b3a1b-d5c1-4b65-99bf-6099b9dbb355/status

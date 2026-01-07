@@ -12,6 +12,8 @@ const API_CONFIG = {
       searchByUuid: (uuid: string) => `/simulation-applicants/${uuid}`,
       update: (uuid: string) => `/simulation-applicants/${uuid}`,
       photoStatus: (uuid: string) => `/simulation-applicants/${uuid}/photo-status`,
+      confirm: '/simulation-applicants/confirm',
+      status: (uuid: string) => `/simulation-applicants/${uuid}/status`,
     },
   },
   timeout: 30000, // 30 segundos

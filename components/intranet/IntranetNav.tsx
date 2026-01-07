@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { User, Camera, CreditCard, FileCheck, LucideIcon } from 'lucide-react';
 import { useSimulationMode } from '@/lib/hooks/useSimulationMode';
+import { SimulationStorageService } from '@/lib/services/simulation-storage.service';
+import { useEffect, useState } from 'react';
 
 interface NavItem {
   href: string;
@@ -23,10 +25,18 @@ const NAV_ITEMS: NavItem[] = [
 /**
  * Componente de navegación del intranet con estado activo reactivo
  * Muestra/oculta el menú de foto según si el simulacro es virtual o presencial
+ * Desactiva los enlaces cuando el usuario ya confirmó sus datos
  */
 export function IntranetNav() {
   const pathname = usePathname();
-  const { requiresPhoto, isLoading } = useSimulationMode();
+  const { requiresPhoto } = useSimulationMode();
+  const [isConfirmed, setIsConfirmed] = useState(false);
+
+  // Verificar si el usuario ya confirmó sus datos
+  useEffect(() => {
+    const userData = SimulationStorageService.getApplicantData();
+    setTimeout(() => setIsConfirmed(userData?.process?.confirmation !== null), 0);
+  }, [pathname]); // Revalidar cuando cambia la ruta
 
   // Filtrar items según el modo del simulacro
   const visibleItems = NAV_ITEMS.filter(item => {
@@ -42,6 +52,24 @@ export function IntranetNav() {
       {visibleItems.map((item) => {
         const Icon = item.icon;
         const isActive = pathname === item.href;
+        const isFinalPage = item.href === '/intranet/final';
+
+        // Si está confirmado, solo permitir acceso a la página final
+        const isDisabled = isConfirmed && !isFinalPage;
+
+        if (isDisabled) {
+          // Mostrar como desactivado
+          return (
+            <div
+              key={item.href}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg text-slate-400 cursor-not-allowed opacity-50"
+              title="Ya has confirmado tus datos. No puedes modificar esta sección."
+            >
+              <Icon className="h-4 w-4" />
+              {item.label}
+            </div>
+          );
+        }
 
         return (
           <Link
