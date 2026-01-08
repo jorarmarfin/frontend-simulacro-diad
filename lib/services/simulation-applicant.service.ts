@@ -83,7 +83,7 @@ export class SimulationApplicantService {
     data: SimulationApplicantCreateRequest
   ): Promise<SimulationApplicantCreateResponse> {
     try {
-      return await apiClient.put<SimulationApplicantCreateResponse>(
+      return await apiClient.post<SimulationApplicantCreateResponse>(
         API_CONFIG.endpoints.simulationApplicants.update(uuid),
         data
       );
