@@ -7,7 +7,7 @@ export function HowItWorksSection() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto">
           <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">
-            Empieza en solo 3 pasos
+            Empieza en solo 4 pasos
           </h2>
           <p className="mt-4 text-lg text-slate-600">
             Nuestro proceso es simple y directo para que te concentres en lo más importante: tu preparación.

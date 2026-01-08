@@ -7,7 +7,7 @@ export function Header() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <Link href="/" className="flex items-center gap-2">
-            <BookOpen className="h-7 w-7 text-blue-500" />
+            <img src='/escudo-uni.png' className='h-7 w-7'/>
             <span className="text-xl font-bold text-slate-800">Simulacro UNI</span>
           </Link>
           <nav className="hidden md:flex items-center gap-6">
