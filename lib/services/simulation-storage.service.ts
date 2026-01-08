@@ -6,6 +6,7 @@ import type { SimulationApplicant } from '@/lib/types/exam-simulation.types';
 
 const STORAGE_KEYS = {
   IS_VIRTUAL: 'simulacro_is_virtual',
+  EXAM_DATE: 'simulacro_exam_date',
   APPLICANT_UUID: 'simulacro_applicant_uuid',
   APPLICANT_DATA: 'simulacro_applicant_data',
 } as const;
@@ -48,11 +49,62 @@ export class SimulationStorageService {
   }
 
   /**
+   * Guarda la fecha del examen
+   */
+  static setExamDate(examDate: string | null): void {
+    if (typeof window !== 'undefined') {
+      if (examDate) {
+        localStorage.setItem(STORAGE_KEYS.EXAM_DATE, examDate);
+      } else {
+        localStorage.removeItem(STORAGE_KEYS.EXAM_DATE);
+      }
+    }
+  }
+
+  /**
+   * Obtiene la fecha del examen
+   * @returns Fecha del examen en formato ISO o null si no existe
+   */
+  static getExamDate(): string | null {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem(STORAGE_KEYS.EXAM_DATE);
+  }
+
+  /**
+   * Obtiene la fecha del examen formateada de manera amigable
+   * @returns Fecha formateada (ej: "Sábado, 15 de Enero de 2026") o null
+   */
+  static getExamDateFormatted(): string | null {
+    const examDate = this.getExamDate();
+    if (!examDate) return null;
+
+    try {
+      const date = new Date(examDate);
+
+      // Opciones para formato largo en español
+      const options: Intl.DateTimeFormatOptions = {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      };
+
+      const formatted = date.toLocaleDateString('es-PE', options);
+
+      // Capitalizar la primera letra
+      return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Limpia todos los datos del storage (logout)
    */
   static clear(): void {
     if (typeof window !== 'undefined') {
       localStorage.removeItem(STORAGE_KEYS.IS_VIRTUAL);
+      localStorage.removeItem(STORAGE_KEYS.EXAM_DATE);
       localStorage.removeItem(STORAGE_KEYS.APPLICANT_UUID);
       localStorage.removeItem(STORAGE_KEYS.APPLICANT_DATA);
     }

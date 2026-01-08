@@ -13,22 +13,53 @@ interface SimulationDatesProps {
 
 /**
  * Componente para mostrar las fechas del simulacro
- * y guardar is_virtual en localStorage
+ * y guardar is_virtual y exam_date en localStorage
  */
 export function SimulationDates({ dateStart, dateEnd, examDate, isVirtual }: SimulationDatesProps) {
-  // Guardar is_virtual en localStorage al montar el componente
+  // Guardar is_virtual y exam_date en localStorage al montar el componente
   useEffect(() => {
     SimulationStorageService.setIsVirtual(isVirtual);
-  }, [isVirtual]);
 
-  // Formatear fecha de DD/MM/YYYY a formato legible
+    // Guardar exam_date si existe
+    if (examDate) {
+      // Verificar el formato de la fecha
+      let isoDate: string;
+
+      if (examDate.includes('/')) {
+        // Formato DD/MM/YYYY - convertir a ISO
+        const [day, month, year] = examDate.split('/');
+        isoDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      } else if (examDate.includes('-')) {
+        // Ya viene en formato ISO (YYYY-MM-DD)
+        isoDate = examDate;
+      } else {
+        // Formato no reconocido, no guardar
+        console.warn('Formato de exam_date no reconocido:', examDate);
+        return;
+      }
+
+      SimulationStorageService.setExamDate(isoDate);
+    }
+  }, [isVirtual, examDate]);
+
+  // Formatear fecha de DD/MM/YYYY o ISO (YYYY-MM-DD) a formato legible
   const formatDate = (dateStr: string): string => {
-    const [day, month, year] = dateStr.split('/');
     const months = [
       'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
       'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
     ];
-    return `${parseInt(day)} de ${months[parseInt(month) - 1]} ${year}`;
+
+    if (dateStr.includes('/')) {
+      // Formato DD/MM/YYYY
+      const [day, month, year] = dateStr.split('/');
+      return `${parseInt(day)} de ${months[parseInt(month) - 1]} ${year}`;
+    } else if (dateStr.includes('-')) {
+      // Formato ISO YYYY-MM-DD
+      const [year, month, day] = dateStr.split('-');
+      return `${parseInt(day)} de ${months[parseInt(month) - 1]} ${year}`;
+    }
+
+    return dateStr; // Retornar tal cual si no coincide
   };
 
   return (

@@ -15,12 +15,12 @@ export function FeaturesSection() {
         </div>
         <div className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
           <FeatureCard
-            icon={<CheckCircle className="h-6 w-6 text-blue-500" />}
+            icon={<CheckCircle className="h-6 w-6 text-red-500" />}
             title="Examen Realista"
             description="Preguntas y estructura basadas en exámenes de admisión pasados de la UNI."
           />
           <FeatureCard
-            icon={<Award className="h-6 w-6 text-blue-500" />}
+            icon={<Award className="h-6 w-6 text-red-500" />}
             title="Resultados Detallados"
             description="Obtén un análisis de tu desempeño por área para enfocar mejor tu estudio."
           />

@@ -33,6 +33,11 @@ export function useActiveSimulation(): UseActiveSimulationState {
       if (response?.data?.is_virtual !== undefined) {
         SimulationStorageService.setIsVirtual(response.data.is_virtual);
       }
+
+      // Guardar exam_date en storage para mostrar en home y ficha
+      if (response?.data?.exam_date !== undefined) {
+        SimulationStorageService.setExamDate(response.data.exam_date);
+      }
     } catch (err) {
       setError(err as ApiError);
     } finally {

@@ -2,6 +2,8 @@
 
 import { forwardRef } from 'react';
 import type { SimulationApplicant } from '@/lib/types/exam-simulation.types';
+import { SimulationStorageService } from '@/lib/services/simulation-storage.service';
+import Image from "next/image";
 
 interface ApplicantCardProps {
   data: SimulationApplicant;
@@ -13,23 +15,30 @@ interface ApplicantCardProps {
  */
 export const ApplicantCard = forwardRef<HTMLDivElement, ApplicantCardProps>(
   ({ data }, ref) => {
+    // Obtener la fecha del examen formateada desde localStorage
+    const examDateFormatted = SimulationStorageService.getExamDateFormatted();
+
     return (
       <div ref={ref} className="bg-white p-8 max-w-4xl mx-auto">
         {/* Encabezado oficial */}
-        <div className="border-b-4 border-blue-900 pb-6 mb-6">
-          <h1 className="text-3xl font-bold text-center text-blue-900 mb-2">
-            UNIVERSIDAD NACIONAL DE INGENIERÍA
-          </h1>
-          <h2 className="text-xl font-semibold text-center text-blue-800">
-            FICHA DE INSCRIPCIÓN - SIMULACRO DE EXAMEN DE ADMISIÓN
-          </h2>
+        <div className="border-b-4 border-red-900 mb-6 flex">
+          <Image src='/escudo-uni.png' alt='Escudo de la UNI' width={80} height={80} className="mx-2 mb-4" />
+          <div className='items-center mt-3'>
+            <h1 className="text-3xl font-bold text-red-900">
+              UNIVERSIDAD NACIONAL DE INGENIERÍA
+            </h1>
+            <h2 className="text-xl font-semibold text-red-800">
+              FICHA DE INSCRIPCIÓN - SIMULACRO DE EXAMEN DE ADMISIÓN
+            </h2>
+          </div>
+
         </div>
 
         {/* Información principal con foto */}
         <div className="flex gap-6 mb-8">
           {/* Foto del postulante */}
           <div className="shrink-0">
-            <div className="w-40 h-48 border-4 border-blue-900 rounded-lg overflow-hidden bg-gray-100">
+            <div className="w-40 h-48 border-4 border-red-900 rounded-lg overflow-hidden bg-gray-100">
               {data.photo_url ? (
                 <img
                   src={data.photo_url}
@@ -48,7 +57,7 @@ export const ApplicantCard = forwardRef<HTMLDivElement, ApplicantCardProps>(
           <div className="flex-1">
             {/* Código de postulante destacado */}
             {data.code && (
-              <div className="bg-blue-900 text-white p-4 rounded-lg mb-4">
+              <div className="bg-red-900 text-white p-4 rounded-lg mb-4">
                 <p className="text-sm font-medium mb-1">CÓDIGO DE POSTULANTE</p>
                 <p className="text-3xl font-bold tracking-wider">{data.code}</p>
               </div>
@@ -56,6 +65,12 @@ export const ApplicantCard = forwardRef<HTMLDivElement, ApplicantCardProps>(
 
             {/* Datos personales */}
             <div className="space-y-3">
+              <div className="border-b-2 border-gray-300 pb-2">
+                <p className="text-xs text-gray-600 font-medium uppercase">Número de Inscripción</p>
+                <p className="text-lg font-bold text-gray-900">
+                  {data.code || 'N/A'}
+                </p>
+              </div>
               <div className="border-b-2 border-gray-300 pb-2">
                 <p className="text-xs text-gray-600 font-medium uppercase">Apellidos y Nombres</p>
                 <p className="text-lg font-bold text-gray-900">
@@ -88,13 +103,12 @@ export const ApplicantCard = forwardRef<HTMLDivElement, ApplicantCardProps>(
               <p className="text-lg font-bold text-gray-900">{data.exam_description}</p>
             </div>
 
-            {/* Aquí se mostrará la fecha y aula cuando el API lo proporcione */}
+            {/* Fecha y aula del examen */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-xs text-gray-700 font-medium uppercase">Fecha del Examen</p>
                 <p className="text-base font-bold text-gray-900">
-                  {/* Este campo vendría del API cuando esté disponible */}
-                  Por confirmar
+                  {examDateFormatted || 'Por confirmar'}
                 </p>
               </div>
               <div>
@@ -122,7 +136,6 @@ export const ApplicantCard = forwardRef<HTMLDivElement, ApplicantCardProps>(
             <li>Traer lápiz 2B, borrador y tajador</li>
           </ul>
         </div>
-
         {/* Footer */}
         <div className="border-t-2 border-gray-300 pt-4 text-center">
           <p className="text-xs text-gray-600">

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { BookOpen } from 'lucide-react';
 import { IntranetNav } from '@/components/intranet/IntranetNav';
 import { LogoutButton } from '@/components/intranet/LogoutButton';
+import Image from "next/image";
 
 /**
  * Header del intranet - Server Component
@@ -14,7 +15,8 @@ export function IntranetHeader() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
-            <BookOpen className="h-7 w-7 text-blue-500" />
+            <Image alt='Universidad Nacional de Ingenieria' src='/escudo-uni.png' width={28}
+                   height={28} className='h-7 w-7' />
             <span className="text-xl font-bold text-slate-800">Simulacro UNI</span>
           </Link>
 
