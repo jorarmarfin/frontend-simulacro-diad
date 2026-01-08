@@ -196,7 +196,7 @@ export class SimulationApplicantService {
     try {
       const requestData: ConfirmApplicantRequest = { uuid };
 
-      return await apiClient.put<ConfirmApplicantResponse>(
+      return await apiClient.post<ConfirmApplicantResponse>(
         API_CONFIG.endpoints.simulationApplicants.confirm,
         requestData
       );
