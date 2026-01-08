@@ -80,9 +80,17 @@ export const Login = () => {
                             // Si ya confirmó, redirigir directamente a la página final (ficha)
                             router.push('/intranet/final');
                         } else {
-                            // Si no ha confirmado, redirigir a la página de datos personales
-                            // (donde se mostrará el summary para que pueda editar o confirmar)
-                            router.push('/intranet/personal-data');
+                            // Si no ha confirmado, verificar si ya completó los pasos previos
+                            const hasPreRegistration = processResponse.data.process.pre_registration !== null;
+                            const hasPayment = processResponse.data.process.payment !== null;
+
+                            if (hasPreRegistration && hasPayment) {
+                                // Si ya completó datos y pago, ir directo a confirmar
+                                router.push('/intranet/personal-data-confirm');
+                            } else {
+                                // Si falta completar pasos, ir a datos personales
+                                router.push('/intranet/personal-data');
+                            }
                         }
                     } else {
                         // Si falla obtener el estado del proceso, guardar los datos básicos

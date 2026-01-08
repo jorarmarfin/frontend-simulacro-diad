@@ -15,10 +15,10 @@ export default function PaymentsDataPage() {
       <div className="w-full max-w-4xl mx-auto">
         <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-6">
           <Link
-            href="/intranet/final"
+            href="/intranet/personal-data-confirm"
             className="w-full flex justify-center items-center rounded-md bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 transition-all duration-200 transform hover:scale-[1.01]"
           >
-            Siguiente
+            Confirmar Datos
             <ArrowRight className="ml-2 h-5 w-5" />
           </Link>
         </div>

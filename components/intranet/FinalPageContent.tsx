@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertCircle } from 'lucide-react';
-import { UserDataSummary } from '@/components/intranet/UserDataSummary';
 import { FichaApplicant } from '@/components/intranet/FichaApplicant';
 import { SimulationStorageService } from '@/lib/services/simulation-storage.service';
 import { SimulationApplicantService } from '@/lib/services/simulation-applicant.service';
@@ -11,12 +10,12 @@ import type { SimulationApplicant } from '@/lib/types/exam-simulation.types';
 
 /**
  * Componente cliente que maneja la lógica de la página final
- * Muestra el resumen si no está confirmado, o la ficha si ya confirmó
+ * Solo muestra la ficha si el usuario ya confirmó sus datos
+ * Si no ha confirmado, redirige a personal-data-confirm
  */
 export function FinalPageContent() {
   const router = useRouter();
   const [userData, setUserData] = useState<SimulationApplicant | null>(null);
-  const [isConfirmed, setIsConfirmed] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -42,49 +41,42 @@ export function FinalPageContent() {
           };
           SimulationStorageService.setApplicantData(updatedData);
 
-          // Verificar si todos los pasos están completos:
-          // 1. Datos personales (pre_registration)
-          // 2. Pago (payment)
-          // 3. Foto revisada (solo si es presencial - photo_reviewed_at)
-          // 4. Confirmación final (confirmation)
-          const hasPersonalData = response.data.process.pre_registration !== null;
-          const hasPayment = response.data.process.payment !== null;
-          const requiresPhoto = SimulationStorageService.requiresPhoto();
-          const hasPhotoReviewed = !requiresPhoto || (response.data.process.photo_reviewed_at !== null);
+          // Verificar si ya confirmó sus datos
           const hasConfirmation = response.data.process.confirmation !== null;
 
-          // Solo está confirmado si tiene confirmación Y todos los pasos previos
-          const fullyConfirmed = hasConfirmation && hasPersonalData && hasPayment && hasPhotoReviewed;
+          if (!hasConfirmation) {
+            // Si no ha confirmado, redirigir a la página de confirmación
+            router.push('/intranet/personal-data-confirm');
+            return;
+          }
 
+          // Si ya confirmó, mostrar los datos
           setUserData(updatedData);
-          setIsConfirmed(fullyConfirmed);
         } else {
-          // Si hay error en la API, usar los datos del localStorage
+          // Si hay error en la API, verificar con datos del localStorage
           console.error('Error al obtener el estado del proceso:', response.message);
 
-          const hasPersonalData = localData.process.pre_registration !== null;
-          const hasPayment = localData.process.payment !== null;
-          const requiresPhoto = SimulationStorageService.requiresPhoto();
-          const hasPhotoReviewed = !requiresPhoto || (localData.process.photo_reviewed_at !== null);
           const hasConfirmation = localData.process.confirmation !== null;
-          const fullyConfirmed = hasConfirmation && hasPersonalData && hasPayment && hasPhotoReviewed;
+
+          if (!hasConfirmation) {
+            router.push('/intranet/personal-data-confirm');
+            return;
+          }
 
           setUserData(localData);
-          setIsConfirmed(fullyConfirmed);
         }
       } catch (error) {
         console.error('Error al cargar el estado del proceso:', error);
 
         // Fallback a los datos del localStorage
-        const hasPersonalData = localData.process.pre_registration !== null;
-        const hasPayment = localData.process.payment !== null;
-        const requiresPhoto = SimulationStorageService.requiresPhoto();
-        const hasPhotoReviewed = !requiresPhoto || (localData.process.photo_reviewed_at !== null);
         const hasConfirmation = localData.process.confirmation !== null;
-        const fullyConfirmed = hasConfirmation && hasPersonalData && hasPayment && hasPhotoReviewed;
+
+        if (!hasConfirmation) {
+          router.push('/intranet/personal-data-confirm');
+          return;
+        }
 
         setUserData(localData);
-        setIsConfirmed(fullyConfirmed);
       } finally {
         setIsLoading(false);
       }
@@ -105,12 +97,7 @@ export function FinalPageContent() {
     );
   }
 
-  // Si no está confirmado, mostrar el summary para confirmar
-  if (!isConfirmed) {
-    return <UserDataSummary />;
-  }
-
-  // Si está confirmado, mostrar la ficha imprimible
+  // Mostrar la ficha imprimible
   return <FichaApplicant userData={userData} />;
 }
 

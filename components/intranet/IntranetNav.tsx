@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { User, Camera, CreditCard, FileCheck, LucideIcon } from 'lucide-react';
+import { User, Camera, CreditCard, FileCheck, CheckSquare, LucideIcon } from 'lucide-react';
 import { useSimulationMode } from '@/lib/hooks/useSimulationMode';
 import { SimulationStorageService } from '@/lib/services/simulation-storage.service';
 import { useEffect, useState } from 'react';
@@ -19,6 +19,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/intranet/personal-data', label: 'Datos Personales', icon: User },
   { href: '/intranet/personal-photo', label: 'Foto', icon: Camera, requiresPresencial: true },
   { href: '/intranet/payments-data', label: 'Pagos', icon: CreditCard },
+  { href: '/intranet/personal-data-confirm', label: 'Confirmar', icon: CheckSquare },
   { href: '/intranet/final', label: 'Finalizar', icon: FileCheck },
 ];
 
@@ -64,9 +65,10 @@ export function IntranetNav() {
         const Icon = item.icon;
         const isActive = pathname === item.href;
         const isFinalPage = item.href === '/intranet/final';
+        const isConfirmPage = item.href === '/intranet/personal-data-confirm';
 
-        // Si está confirmado, solo permitir acceso a la página final
-        const isDisabled = isConfirmed && !isFinalPage;
+        // Si está confirmado, solo permitir acceso a la página final y de confirmación
+        const isDisabled = isConfirmed && !isFinalPage && !isConfirmPage;
 
         if (isDisabled) {
           // Mostrar como desactivado

@@ -108,9 +108,9 @@ export function UserDataSummary() {
         // Recargar el estado del proceso después de confirmar
         await loadProcessStatus(userData.uuid);
 
-        // Recargar la página después de 1 segundo para mostrar la ficha
+        // Redirigir a la página final después de 1 segundo
         setTimeout(() => {
-          window.location.reload();
+          router.push('/intranet/final');
         }, 1000);
       } else {
         setErrorMessage(response.message || 'Error al confirmar los datos');
