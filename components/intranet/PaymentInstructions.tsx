@@ -54,7 +54,7 @@ const BANKS_CONFIG: BankConfig[] = [
         id: 'bcp-yape',
         icon: 'wallet',
         title: 'Yape',
-        description: 'Ingresa a tu app de Yape → Presiona el botón "Yapear Servicios" → Haz clic en "Busca una empresa" y digita: UNIVERSIDAD NACIONAL DE INGENIERÍA → Presiona "Ingresar Pago Estudiantes" → Digita el DNI del postulante en el recuadro → Se verifica el monto del recibo (S/ 100.00) → Presiona "Yapear Servicio" y listo. Recuerda que son 2 montos a realizar y se realizan por separado.',
+        description: 'Ingresa a tu app de Yape → Presiona el botón "Yapear Servicios" → Haz clic en "Busca una empresa" y digita: UNIVERSIDAD NACIONAL DE INGENIERÍA → Presiona "Ingresar Pago Estudiantes" → Digita el DNI del postulante en el recuadro → Se verifica el monto del recibo (S/ 100.00) → Presiona "Yapear Servicio" y listo.',
         enabled: true
       }
     ]
