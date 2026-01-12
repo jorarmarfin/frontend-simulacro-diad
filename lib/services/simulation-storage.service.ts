@@ -79,7 +79,9 @@ export class SimulationStorageService {
     if (!examDate) return null;
 
     try {
-      const date = new Date(examDate);
+      // Parsear la fecha en la zona horaria local para evitar problemas con UTC
+      const [year, month, day] = examDate.split('-').map(Number);
+      const date = new Date(year, month - 1, day);
 
       // Opciones para formato largo en español
       const options: Intl.DateTimeFormatOptions = {
