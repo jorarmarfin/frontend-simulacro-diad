@@ -132,8 +132,9 @@ export const ApplicantCard = forwardRef<HTMLDivElement, ApplicantCardProps>(
             <li>Debe presentarse 30 minutos antes del inicio del examen</li>
             <li>Traer documento de identidad original (DNI)</li>
             <li>Traer esta ficha impresa</li>
-            <li>No se permite el uso de dispositivos electrónicos durante el examen</li>
-            <li>Traer lápiz 2B, borrador y tajador</li>
+            <li>No está permitido ingresar con artículos electrónicos, como celulares, relojes inteligentes, USBs u otros dispositivos.</li>
+            <li>No se permite el uso de aretes, capuchas, gorros, bufandas ni accesorios similares.</li>
+            <li>La institución proporcionará lápiz, borrador y tajador a todos los postulantes.</li>
           </ul>
         </div>
         {/* Footer */}
