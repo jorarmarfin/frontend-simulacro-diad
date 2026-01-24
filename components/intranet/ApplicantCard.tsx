@@ -113,6 +113,12 @@ export const ApplicantCard = forwardRef<HTMLDivElement, ApplicantCardProps>(
               </div>
             </div>
 
+            {/* Puertas de ingreso habilitadas (información oficial) */}
+            <div className="mt-4">
+              <p className="text-xs text-gray-700 font-medium uppercase">Puertas de ingreso habilitadas</p>
+              <p className="text-sm text-gray-900">Puerta N.° 3 – ubicada en el paradero Puente (Av. Túpac Amaru).</p>
+              <p className="text-sm text-gray-900">Puerta N.° 4 – Av. Habich.</p>
+            </div>
 
           </div>
         </div>
