@@ -108,8 +108,7 @@ export const ApplicantCard = forwardRef<HTMLDivElement, ApplicantCardProps>(
               <div>
                 <p className="text-xs text-gray-700 font-medium uppercase">Aula Asignada</p>
                 <p className="text-base font-bold text-gray-900">
-                  {/* Este campo vendría del API cuando esté disponible */}
-                  Por asignar
+                  {data.classroom_assignment ?? 'Por asignar'}
                 </p>
               </div>
             </div>

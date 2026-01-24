@@ -47,7 +47,8 @@ export interface SimulationApplicant {
   phone_mobile: string; // Teléfono móvil
   phone_other: string | null; // Teléfono alternativo
   exam_description: string;
-  photo_url: string | null; // URL de la foto del postulante
+  photo_url?: string; // URL de la foto del postulante
+  classroom_assignment?: string; // Aula asignada proveniente del endpoint /simulation-applicants/{uuid}
   process: SimulationApplicantProcess;
 }
 
