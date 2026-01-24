@@ -18,6 +18,7 @@ export interface ExamSimulationStatusResponse {
     exam_date_end?: string; // Fecha fin de inscripciones
     exam_date?: string | null; // Fecha del examen
     is_virtual?: boolean; // Indica si el examen es virtual o presencial
+    is_inscription_open?: boolean; // Nuevo campo: si las inscripciones están abiertas
     message?: string;
   };
 }
