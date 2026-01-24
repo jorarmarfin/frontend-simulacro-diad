@@ -66,12 +66,6 @@ export const ApplicantCard = forwardRef<HTMLDivElement, ApplicantCardProps>(
             {/* Datos personales */}
             <div className="space-y-3">
               <div className="border-b-2 border-gray-300 pb-2">
-                <p className="text-xs text-gray-600 font-medium uppercase">Número de Inscripción</p>
-                <p className="text-lg font-bold text-gray-900">
-                  {data.code || 'N/A'}
-                </p>
-              </div>
-              <div className="border-b-2 border-gray-300 pb-2">
                 <p className="text-xs text-gray-600 font-medium uppercase">Apellidos y Nombres</p>
                 <p className="text-lg font-bold text-gray-900">
                   {data.last_name_father} {data.last_name_mother}, {data.first_names}
