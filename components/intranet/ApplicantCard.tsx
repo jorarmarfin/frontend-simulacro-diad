@@ -102,7 +102,7 @@ export const ApplicantCard = forwardRef<HTMLDivElement, ApplicantCardProps>(
               <div>
                 <p className="text-xs text-gray-700 font-medium uppercase">Fecha del Examen</p>
                 <p className="text-base font-bold text-gray-900">
-                  {examDateFormatted || 'Por confirmar'}
+                  {examDateFormatted || 'Por confirmar'}  <br /> Hora Ingreso: 7:30 a 8:30 a. m.
                 </p>
               </div>
               <div>
@@ -112,6 +112,8 @@ export const ApplicantCard = forwardRef<HTMLDivElement, ApplicantCardProps>(
                 </p>
               </div>
             </div>
+
+
           </div>
         </div>
 
