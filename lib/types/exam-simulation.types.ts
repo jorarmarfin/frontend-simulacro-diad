@@ -9,16 +9,25 @@ export interface ApiError {
   errors?: Record<string, string[]>;
 }
 
+export interface AvailableTariff {
+  id: number;
+  code: string;
+  description: string;
+  amount: string; // Mantener como string ya que el API devuelve "80.00"
+}
+
 export interface ExamSimulationStatusResponse {
   data: {
     status: 'success' | 'error';
     is_active: boolean;
+    is_inscription_open?: boolean; // Nuevo campo: si las inscripciones están abiertas
     description?: string;
     exam_date_start?: string; // Fecha inicio de inscripciones
     exam_date_end?: string; // Fecha fin de inscripciones
     exam_date?: string | null; // Fecha del examen
     is_virtual?: boolean; // Indica si el examen es virtual o presencial
-    is_inscription_open?: boolean; // Nuevo campo: si las inscripciones están abiertas
+    is_vocational?: boolean; // Nuevo campo: si incluye vocacional
+    available_tariffs?: AvailableTariff[]; // Nuevos datos de tarifas disponibles
     message?: string;
   };
 }

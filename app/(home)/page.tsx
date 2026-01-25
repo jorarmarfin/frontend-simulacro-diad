@@ -10,6 +10,7 @@ import {CTASection} from '@/components/home/CTASection';
 import {RegistrationStatus} from '@/components/home/RegistrationStatus';
 import {SimulationDates} from '@/components/home/SimulationDates';
 import {ExamSimulationService} from '@/lib/services/exam-simulation.service';
+import type { AvailableTariff } from '@/lib/types/exam-simulation.types';
 
 // Deshabilitar el caché de la página para obtener datos frescas siempre
 export const dynamic = 'force-dynamic';
@@ -27,6 +28,8 @@ export default async function HomePage() {
     let dateEnd = '';
     let examDate = null;
     let isInscriptionOpen = true; // Nuevo: por defecto asumimos abiertas
+    let isVocational = false; // Nuevo: indica si incluye examen vocacional
+    let availableTariffs: AvailableTariff[] = []; // Nuevo: lista de tarifas disponibles
 
     try {
         const response = await ExamSimulationService.checkActiveSimulation();
@@ -39,6 +42,12 @@ export default async function HomePage() {
         isInscriptionOpen = typeof response.data.is_inscription_open === 'boolean'
             ? response.data.is_inscription_open
             : true;
+        // Leer el nuevo campo is_vocational
+        isVocational = response.data.is_vocational ?? false;
+        // Leer tarifas disponibles si vienen
+        if (Array.isArray(response.data.available_tariffs)) {
+            availableTariffs = response.data.available_tariffs as AvailableTariff[];
+        }
     } catch (error) {
         // Si hay error en el API, mostrar como no activo
         console.error('Error al verificar simulacro activo:', error);
@@ -66,9 +75,45 @@ export default async function HomePage() {
                                 />
                             )}
                             <HeroSection/>
+                            {/* Sección: Examen vocacional */}
+                            {isVocational && (
+                                <section className="bg-white py-12">
+                                    <div className="max-w-4xl mx-auto px-4 text-center">
+                                        <h3 className="text-3xl font-extrabold text-gray-900 mb-3">Examen Vocacional exclusivo para Arquitectura</h3>
+                                        <p className="text-gray-700 mb-6">Este simulacro incluye un Examen Vocacional diseñado exclusivamente para postulantes de Arquitectura: preguntas especializadas que evalúan tu aptitud espacial, creatividad y razonamiento técnico. Realízalo para descubrir tu perfil vocacional, destacar frente a otros postulantes y recibir orientación profesional que complemente tu preparación académica.</p>
+                                        <div className="flex justify-center">
+                                            <Link href="/intranet/personal-data" className="inline-block px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md font-medium">Realiza el Examen Vocacional</Link>
+                                        </div>
+                                    </div>
+                                </section>
+                            )}
+
+                            {/* Sección de tarifas disponibles */}
+                            {availableTariffs && availableTariffs.length > 0 && (
+                                <section id="pricing" className="py-12">
+                                    <div className="max-w-5xl mx-auto px-4">
+                                        <h3 className="text-2xl font-bold text-center mb-6">Tarifario</h3>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                            {availableTariffs.map((t) => (
+                                                <div key={t.id} className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                                                    <h4 className="text-lg font-semibold mb-2">{t.description}</h4>
+                                                    <p className="text-gray-600 mb-2">Código: {t.code}</p>
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="text-2xl font-bold">S/ {t.amount}</div>
+                                                        <Link href="/intranet/personal-data" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm">Inscribirme</Link>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </section>
+                            )}
                             <FeaturesSection/>
                             <HowItWorksSection/>
                             <CTASection/>
+
+
+
                         </>
                     ) : (
                         // Card cuando las inscripciones han finalizado

@@ -6,12 +6,20 @@ import { SimulationStorageService } from '@/lib/services/simulation-storage.serv
 import type {
   ExamSimulationStatusResponse,
   ApiError,
+  AvailableTariff,
 } from '@/lib/types/exam-simulation.types';
 
 interface UseActiveSimulationState {
   data: ExamSimulationStatusResponse | null;
   isActive: boolean;
   isVirtual: boolean;
+  isInscriptionOpen: boolean;
+  isVocational: boolean;
+  description?: string;
+  examDate?: string | null;
+  examDateStart?: string | undefined;
+  examDateEnd?: string | undefined;
+  availableTariffs?: AvailableTariff[] | undefined;
   loading: boolean;
   error: ApiError | null;
   refetch: () => Promise<void>;
@@ -53,9 +61,15 @@ export function useActiveSimulation(): UseActiveSimulationState {
     data,
     isActive: data?.data?.is_active ?? false,
     isVirtual: data?.data?.is_virtual ?? true, // Por defecto true (virtual, sin foto)
+    isInscriptionOpen: data?.data?.is_inscription_open ?? true,
+    isVocational: data?.data?.is_vocational ?? false,
+    description: data?.data?.description,
+    examDate: data?.data?.exam_date ?? null,
+    examDateStart: data?.data?.exam_date_start,
+    examDateEnd: data?.data?.exam_date_end,
+    availableTariffs: data?.data?.available_tariffs,
     loading,
     error,
     refetch: fetchData,
   };
 }
-
