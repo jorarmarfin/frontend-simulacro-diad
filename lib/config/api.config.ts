@@ -5,6 +5,7 @@ const API_CONFIG = {
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://backend-inscripcion.local/api',
   endpoints: {
     examSimulations: '/exam-simulations',
+    genders: '/genders', // nuevo endpoint
     simulationApplicants: {
       base: '/simulation-applicants',
       search: '/simulation-applicants/search',
@@ -20,4 +21,3 @@ const API_CONFIG = {
 } as const;
 
 export { API_CONFIG };
-

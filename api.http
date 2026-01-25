@@ -9,8 +9,8 @@ POST {{host}}/simulation-applicants/search
 Content-Type: application/json
 
 {
-  "dni": "76818334",
-  "email": "hagurtoc@gmail.com"
+  "dni": "15271613",
+  "email": "diegosdtad99a19@gmail.com"
 }
 
 ### POST request to register a new simulation applicant
@@ -56,7 +56,7 @@ Content-Type: image/jpeg
 --boundary--
 
 ### Descripción: Obtiene toda la información del postulante usando su UUID.
-GET {{host}}/simulation-applicants/b40f3d67-936f-44bc-a623-4d29eb301bec
+GET {{host}}/simulation-applicants/9e7b8216-f0a3-4a88-8696-75d8e68b0293
 Accept: application/json
 
 ### Descripción: Obtiene toda la información del postulante usando su UUID.
@@ -77,3 +77,6 @@ Content-Type: application/json
 
 ### Process
 GET {{host}}/simulation-applicants/fd4f2608-4f96-4ab8-9c8b-5ba33e0e2293/status
+
+### Get genders
+GET {{host}}/genders

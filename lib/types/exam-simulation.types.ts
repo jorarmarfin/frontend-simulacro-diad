@@ -178,3 +178,13 @@ export type ProcessStatusResponse =
   | ProcessStatusSuccessResponse
   | ProcessStatusErrorResponse;
 
+export interface Gender {
+  id: number;
+  name: string;
+}
+
+export interface GendersResponse {
+  status: 'success' | 'error';
+  message?: string;
+  data: Gender[];
+}
