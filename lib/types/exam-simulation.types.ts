@@ -204,3 +204,19 @@ export interface GendersResponse {
   message?: string;
   data: Gender[];
 }
+
+export interface UbigeoItem {
+  // Algunos endpoints ahora devuelven `id` en lugar de `code` para provincias
+  id?: number;
+  code?: string; // código antiguo (ej: 150200)
+  // El nombre puede venir en distintas propiedades según el endpoint: 'province', 'name' o 'district'
+  province?: string;
+  name?: string;
+  district?: string;
+}
+
+export interface UbigeoResponse {
+  status: 'success' | 'error';
+  message?: string;
+  data: UbigeoItem[];
+}

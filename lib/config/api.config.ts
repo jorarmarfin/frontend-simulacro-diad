@@ -6,6 +6,11 @@ const API_CONFIG = {
   endpoints: {
     examSimulations: '/exam-simulations',
     genders: '/genders', // nuevo endpoint
+    ubigeos: {
+      departments: '/ubigeos/departments',
+      provinces: '/ubigeos/provinces',
+      districts: '/ubigeos/districts',
+    },
     simulationApplicants: {
       base: '/simulation-applicants',
       search: '/simulation-applicants/search',

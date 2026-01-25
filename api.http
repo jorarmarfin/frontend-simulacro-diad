@@ -84,3 +84,12 @@ GET {{host}}/simulation-applicants/fd4f2608-4f96-4ab8-9c8b-5ba33e0e2293/status
 
 ### Get genders
 GET {{host}}/genders
+
+### Get departments
+GET {{host}}/ubigeos/departments
+
+### Get provinces by department code
+GET {{host}}/ubigeos/provinces?department_code=150000
+
+### Get districts by province code
+GET {{host}}/ubigeos/districts?province_code=150100
