@@ -43,6 +43,12 @@ export interface SimulationApplicantProcess {
   photo_reviewed_at: string | null; // Fecha de revisión de la foto (nuevo campo)
   confirmation: string | null; // Nombre actualizado para coincidir con el API
   registration: string | null;
+
+  // Campos nuevos/alternativos que pueden venir desde el API
+  photo?: string | null; // ruta o id de la foto en el proceso
+  photo_status?: PhotoStatus; // estado de la foto: 'pending' | 'approved' | 'rejected' | null
+  photo_rejected_reason?: string | null;
+  data_confirmation?: string | null; // nuevo nombre posible para confirmation
 }
 
 export interface SimulationApplicant {
@@ -58,7 +64,17 @@ export interface SimulationApplicant {
   phone_other: string | null; // Teléfono alternativo
   exam_description: string;
   photo_url?: string; // URL de la foto del postulante
-  classroom_assignment?: string; // Aula asignada proveniente del endpoint /simulation-applicants/{uuid}
+  photo_path?: string | null; // nuevo campo: ruta en storage
+  include_vocational?: boolean; // si el postulante solicitó incluir vocacional
+  exam_is_virtual?: boolean; // si el examen (en general) es virtual
+  exam_include_vocational?: boolean; // si el examen incluye vocacional
+  gender?: string; // nombre del género (puede venir como texto)
+  birth_date?: string; // fecha de nacimiento
+  ubigeo?: string; // ubigeo en formato 'DEPARTAMENTO/PROVINCIA/DISTRITO'
+  tariff?: AvailableTariff | null; // tarifa seleccionada por el postulante
+  requires_photo?: boolean; // si el examen requiere foto
+  has_photo?: boolean; // si ya cargó foto
+  classroom_assignment?: string | null; // Aula asignada proveniente del endpoint /simulation-applicants/{uuid}
   process: SimulationApplicantProcess;
 }
 
