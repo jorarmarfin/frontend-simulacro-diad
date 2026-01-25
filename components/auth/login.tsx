@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form';
 import { CreditCard, Mail, ArrowRight, Loader2, UserPlus, AlertCircle } from 'lucide-react';
 import { SimulationApplicantService } from '@/lib/services/simulation-applicant.service';
 import { SimulationStorageService } from '@/lib/services/simulation-storage.service';
+import { getDefaultSessionTtl } from '@/lib/config/session.config';
 
 // Tipos para el formulario
 interface LoginFormData {
@@ -70,7 +71,12 @@ export const Login = () => {
                             process: processResponse.data.process
                         };
 
-                        // Guardar datos completos en localStorage
+                        // Establecer TTL de sesión configurable antes de guardar datos
+                        // Usamos la variable de entorno NEXT_PUBLIC_SESSION_TTL si está definida
+                        const defaultTtl = getDefaultSessionTtl();
+                        SimulationStorageService.setSessionTtlMinutes(defaultTtl);
+
+                        // Guardar datos completos en localStorage (esto también establecerá expiración)
                         SimulationStorageService.setApplicantData(updatedData);
 
                         // 4. Verificar si ya confirmó sus datos
@@ -94,11 +100,16 @@ export const Login = () => {
                         }
                     } else {
                         // Si falla obtener el estado del proceso, guardar los datos básicos
+                        // Aun en este caso guardamos el TTL y los datos básicos
+                        const defaultTtl = getDefaultSessionTtl();
+                        SimulationStorageService.setSessionTtlMinutes(defaultTtl);
                         SimulationStorageService.setApplicantData(applicantData);
                         router.push('/intranet/personal-data');
                     }
                 } else {
                     // Si falla obtener datos completos, guardar los básicos
+                    const defaultTtl = getDefaultSessionTtl();
+                    SimulationStorageService.setSessionTtlMinutes(defaultTtl);
                     SimulationStorageService.setApplicantData(searchResponse.data);
                     router.push('/intranet/personal-data');
                 }

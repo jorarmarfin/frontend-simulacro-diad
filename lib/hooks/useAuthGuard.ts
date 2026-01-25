@@ -15,15 +15,18 @@ interface UseAuthGuardOptions {
 export function useAuthGuard(options: UseAuthGuardOptions = {}) {
   const { skip = false } = options;
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  // Evitar setState sincronico en useEffect: inicializar estados según `skip`
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(skip ? true : null);
   const [isLoading, setIsLoading] = useState(!skip);
 
   const checkAuth = useCallback(() => {
     if (skip) return true;
 
-    const hasSession = SimulationStorageService.hasApplicant();
+    // Usar la nueva verificación que considera expiración de sesión
+    const isValid = SimulationStorageService.isSessionValid();
 
-    if (!hasSession) {
+    if (!isValid) {
+      // Si la sesión no es válida, redirigir al inicio
       router.replace('/');
       return false;
     }
@@ -32,8 +35,7 @@ export function useAuthGuard(options: UseAuthGuardOptions = {}) {
 
   useEffect(() => {
     if (skip) {
-      setIsAuthenticated(true);
-      setIsLoading(false);
+      // Ya inicializamos isAuthenticated y isLoading según skip
       return;
     }
 
@@ -48,4 +50,3 @@ export function useAuthGuard(options: UseAuthGuardOptions = {}) {
 
   return { isAuthenticated, isLoading };
 }
-
