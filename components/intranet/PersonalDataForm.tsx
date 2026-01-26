@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { User, Mail, Phone, FileText, Loader2, AlertCircle, CheckCircle, Save } from 'lucide-react';
@@ -10,10 +10,19 @@ import type { SimulationApplicantCreateRequest } from '@/lib/types/exam-simulati
 import { UbigeoService, NormalizedUbigeo } from '@/lib/services/ubigeo.service';
 import { GenderService } from '@/lib/services/gender.service';
 import type { Gender } from '@/lib/types/exam-simulation.types';
+import type { GendersResponse } from '@/lib/types/exam-simulation.types';
 
 // Tipo del formulario (extiende el request con campos adicionales del form)
-interface PersonalDataFormData extends SimulationApplicantCreateRequest {
+interface PersonalDataFormData {
+  // Campos del formulario (no extendemos SimulationApplicantCreateRequest para evitar conflictos de tipos)
   document_type: string;
+  dni: string;
+  last_name_father: string;
+  last_name_mother: string;
+  first_names: string;
+  email: string;
+  phone_mobile: string;
+  phone_other?: string | null;
   // Nuevos campos
   include_vocational?: boolean;
   genders_id?: string; // usamos string para los selects, luego parseamos a number
@@ -24,6 +33,24 @@ interface PersonalDataFormData extends SimulationApplicantCreateRequest {
 }
 
 export function PersonalDataForm() {
+  // Tipo local para los datos guardados en storage (solo campos que usamos aquí)
+  interface SavedApplicant {
+    uuid?: string;
+    dni?: string;
+    last_name_father?: string;
+    last_name_mother?: string;
+    first_names?: string;
+    email?: string;
+    phone_mobile?: string | null;
+    phone_other?: string | null;
+    include_vocational?: boolean;
+    gender_id?: number | string | null;
+    birth_date?: string | null;
+    ubigeo_codes?: { department_code?: string; province_code?: string } | null;
+    ubigeo_id?: number | null;
+    [key: string]: unknown;
+  }
+
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +63,8 @@ export function PersonalDataForm() {
   const [provinces, setProvinces] = useState<NormalizedUbigeo[]>([]);
   const [districts, setDistricts] = useState<NormalizedUbigeo[]>([]);
   const [genders, setGenders] = useState<Gender[]>([]);
+  // Ref para indicar que estamos precargando valores desde storage y evitar efectos colisionantes
+  const isPreloadingRef = useRef(false);
 
   const {
     register,
@@ -64,29 +93,181 @@ export function PersonalDataForm() {
     }
   });
 
-  // Cargar datos guardados del localStorage si existen
-  useEffect(() => {
-    const savedData = SimulationStorageService.getApplicantData();
-    if (savedData) {
-      setIsExistingUser(true);
-      reset({
-        document_type: 'DNI',
-        dni: savedData.dni,
-        last_name_father: savedData.last_name_father,
-        last_name_mother: savedData.last_name_mother,
-        first_names: savedData.first_names,
-        email: savedData.email,
-        phone_mobile: savedData.phone_mobile || '',
-        phone_other: savedData.phone_other || '',
-        // Intentamos pre cargar algunos campos si existen
-        include_vocational: savedData.include_vocational ?? false,
-        birth_date: savedData.birth_date ?? undefined
-      });
-
-      // Si hay gender (nombre), lo intentamos asignar luego cuando carguen los géneros
-      // Si hay ubigeo en formato libre, lo dejamos para que el usuario seleccione.
+  // Extraer la lógica de precarga a una función reutilizable
+  const preloadFromStorage = useCallback(async (mountedRef: { current: boolean }) => {
+    isPreloadingRef.current = true;
+    // Intentar leer raw del localStorage directamente y reintentar si aún no está seteado (race condition)
+    const STORAGE_KEY = 'simulacro_applicant_data';
+    let raw: string | null = null;
+    let savedData: unknown = null;
+    const maxRetries = 6; // intentos
+    const delayMs = 250;
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      if (!mountedRef.current) break;
+      raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        try {
+          savedData = JSON.parse(raw);
+        } catch {
+          console.warn('preloadFromStorage: failed to parse simulacro_applicant_data');
+          savedData = null;
+        }
+        if (savedData) break;
+      }
+      // esperar y reintentar
+      await new Promise(res => setTimeout(res, delayMs));
     }
-  }, [reset]);
+
+    // Fallback: intentar con el servicio si el parseo directo falló
+    if (!savedData) {
+      try {
+        const svc = SimulationStorageService.getApplicantData();
+        if (svc) savedData = svc;
+      } catch (err) {
+        console.warn('preloadFromStorage: fallback service read failed', err);
+      }
+    }
+
+    // Si la estructura tiene { status, data: { ... } } deshacernos del wrapper
+    if (savedData && typeof savedData === 'object' && 'data' in savedData && (savedData as { data?: unknown }).data) {
+      savedData = (savedData as { data?: unknown }).data;
+    }
+
+    // Convertir a tipo conocido
+    const applicant = (savedData || {}) as SavedApplicant;
+
+    // (no debug logs)
+
+    if (!savedData || !mountedRef.current) {
+      isPreloadingRef.current = false;
+      return;
+    }
+
+    setIsExistingUser(true);
+
+    // Cargar primero las opciones (departamentos y géneros)
+    let deps: NormalizedUbigeo[] = [];
+    let gendersResp: GendersResponse | null = null;
+    try {
+      const results = await Promise.all([UbigeoService.getDepartments(), GenderService.getAll()]);
+      deps = results[0] as NormalizedUbigeo[];
+      gendersResp = results[1] as GendersResponse;
+      if (!mountedRef.current) {
+        isPreloadingRef.current = false;
+        return;
+      }
+      if (Array.isArray(deps) && deps.length) setDepartments(deps);
+      if (gendersResp && gendersResp.status === 'success') setGenders(gendersResp.data);
+    } catch (err) {
+      console.warn('Precarga: error cargando departamentos/géneros', err);
+    }
+
+    // Reset básico de campos
+    reset({
+      document_type: 'DNI',
+      dni: applicant.dni,
+      last_name_father: applicant.last_name_father,
+      last_name_mother: applicant.last_name_mother,
+      first_names: applicant.first_names,
+      email: applicant.email,
+      phone_mobile: applicant.phone_mobile || '',
+      phone_other: applicant.phone_other || '',
+      include_vocational: applicant.include_vocational ?? false,
+      birth_date: applicant.birth_date ?? undefined
+    });
+
+    // Pre-cargar gender
+    if (applicant.gender_id) {
+      try {
+        const genderStr = String(applicant.gender_id);
+        const genderList = (gendersResp && gendersResp.status === 'success') ? gendersResp.data : [];
+        const foundGender = genderList.find(g => String(g.id) === genderStr);
+        if (foundGender) setValue('genders_id', String(foundGender.id));
+        else setValue('genders_id', genderStr);
+      } catch (err) {
+        console.warn('No se pudo setear gender inicial:', err);
+      }
+    }
+
+    // Pre-cargar ubigeo
+    const deptCode = applicant.ubigeo_codes?.department_code;
+    const provCode = applicant.ubigeo_codes?.province_code;
+    if (deptCode) {
+      try {
+        const deptStr = String(deptCode);
+        const foundDep = deps.find(d => String(d.id) === deptStr);
+        if (foundDep) setValue('department', String(foundDep.id));
+        else setValue('department', deptStr);
+
+        const provs = await UbigeoService.getProvinces(String(deptCode));
+        if (!mountedRef.current) {
+          isPreloadingRef.current = false;
+          return;
+        }
+        setProvinces(provs);
+
+        if (provCode) {
+          const provStr = String(provCode);
+          // Buscar la provincia entre las opciones: comparar por id o por code
+          const foundProv = provs.find(p => String(p.id) === provStr || String(((p as unknown) as { code?: string }).code) === provStr);
+          if (foundProv) {
+            setValue('province', String(foundProv.id));
+          } else {
+            // Si no encontramos, setear el code crudo (queda como fallback)
+            setValue('province', provStr);
+          }
+
+          // Cargar distritos con el province_code
+          const dists = await UbigeoService.getDistricts(provStr);
+          if (!mountedRef.current) {
+            isPreloadingRef.current = false;
+            return;
+          }
+          setDistricts(dists);
+
+          if (applicant.ubigeo_id) {
+            // Asegurarse de que el distrito exista en la lista antes de setear
+            const distStr = String(applicant.ubigeo_id);
+            const foundDist = dists.find(d => String(d.id) === distStr);
+            if (foundDist) setValue('ubigeo_id', String(foundDist.id));
+            else setValue('ubigeo_id', distStr);
+          }
+        }
+      } catch (err) {
+        console.error('Error pre-cargando ubigeo desde storage:', err);
+      }
+    }
+
+    isPreloadingRef.current = false;
+  }, [reset, setValue]);
+
+  // Ejecutar precarga al montar y suscribir a eventos de storage para recargar si cambia applicant
+  useEffect(() => {
+    const mounted = { current: true } as { current: boolean };
+    // Ejecutar una vez al montar
+    preloadFromStorage(mounted);
+
+    // Listener para cambios en localStorage desde otras pestañas o acciones
+    const onStorage = (ev: StorageEvent) => {
+      if (!mounted.current) return;
+      if (!ev.key) return;
+      const interestingKeys = [
+        'simulacro_applicant_data',
+        'simulacro_applicant_uuid',
+        'simulacro_session_expires_at'
+      ];
+      if (interestingKeys.includes(ev.key)) {
+        preloadFromStorage(mounted);
+      }
+    };
+
+    window.addEventListener('storage', onStorage);
+
+    return () => {
+      mounted.current = false;
+      window.removeEventListener('storage', onStorage);
+    };
+  }, [reset, setValue, preloadFromStorage]);
 
   // Cargar departamentos y géneros al montar
   useEffect(() => {
@@ -121,6 +302,9 @@ export function PersonalDataForm() {
   // Cuando cambia departamento, cargar provincias
   useEffect(() => {
     let mounted = true;
+    // Si estamos precargando los valores iniciales, evitar que este efecto interfiera
+    if (isPreloadingRef.current) return;
+
     if (!selectedDepartment) {
       setProvinces([]);
       setDistricts([]);
@@ -150,6 +334,9 @@ export function PersonalDataForm() {
   // Cuando cambia provincia, cargar distritos
   useEffect(() => {
     let mounted = true;
+    // Evitar interferir durante la precarga inicial
+    if (isPreloadingRef.current) return;
+
     if (!selectedProvince) {
       setDistricts([]);
       setValue('ubigeo_id', undefined);

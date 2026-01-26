@@ -41,7 +41,7 @@ export interface SimulationApplicantProcess {
   pre_registration: string | null;
   payment: string | null;
   photo_reviewed_at: string | null; // Fecha de revisión de la foto (nuevo campo)
-  confirmation: string | null; // Nombre actualizado para coincidir con el API
+  confirmation: string | null; // Nombre actualizado para coincidir con el API (legacy)
   registration: string | null;
 
   // Campos nuevos/alternativos que pueden venir desde el API
@@ -69,8 +69,14 @@ export interface SimulationApplicant {
   exam_is_virtual?: boolean; // si el examen (en general) es virtual
   exam_include_vocational?: boolean; // si el examen incluye vocacional
   gender?: string; // nombre del género (puede venir como texto)
-  birth_date?: string; // fecha de nacimiento
+  gender_id?: number | null; // id del género (nuevo campo)
+  birth_date?: string; // fecha de nacimiento (YYYY-MM-DD)
   ubigeo?: string; // ubigeo en formato 'DEPARTAMENTO/PROVINCIA/DISTRITO'
+  ubigeo_id?: number | null; // id numérico del distrito (nuevo campo)
+  ubigeo_codes?: { // códigos para request encadenados (department_code, province_code)
+    department_code?: string;
+    province_code?: string;
+  } | null;
   tariff?: AvailableTariff | null; // tarifa seleccionada por el postulante
   requires_photo?: boolean; // si el examen requiere foto
   has_photo?: boolean; // si ya cargó foto
@@ -87,6 +93,11 @@ export interface SimulationApplicantCreateRequest {
   email: string;
   phone_mobile: string;
   phone_other?: string;
+  // Campos opcionales para update/put según nueva trama
+  include_vocational?: boolean;
+  genders_id?: number | null; // nota: backend espera `genders_id` al enviar
+  ubigeo_id?: number | null;
+  birth_date?: string; // YYYY-MM-DD
 }
 
 // Response al crear un applicant exitosamente
