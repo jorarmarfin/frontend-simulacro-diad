@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { User, Mail, Phone, FileText, Loader2, AlertCircle, CheckCircle, Save } from 'lucide-react';
+import { Modal } from '@/components/ui/Modal';
 import { SimulationApplicantService } from '@/lib/services/simulation-applicant.service';
 import { SimulationStorageService } from '@/lib/services/simulation-storage.service';
 import type { SimulationApplicantCreateRequest } from '@/lib/types/exam-simulation.types';
@@ -65,6 +66,9 @@ export function PersonalDataForm() {
   const [genders, setGenders] = useState<Gender[]>([]);
   // Ref para indicar que estamos precargando valores desde storage y evitar efectos colisionantes
   const isPreloadingRef = useRef(false);
+
+  // Estado para el modal de confirmación vocacional
+  const [showVocationalModal, setShowVocationalModal] = useState(false);
 
   const {
     register,
@@ -521,13 +525,12 @@ export function PersonalDataForm() {
                     ? { value: /^\d{8}$/, message: 'El DNI debe tener 8 dígitos' }
                     : { value: /^[A-Za-z0-9]+$/, message: 'Formato de documento inválido' }
                 })}
-                className={`block w-full rounded-md border-0 py-2 pl-10 text-slate-900 ring-1 ring-inset ${
-                  isExistingUser 
-                    ? 'bg-slate-100 cursor-not-allowed'
-                    : errors.dni || getFieldError('dni') 
-                      ? 'ring-red-300 focus:ring-red-500' 
-                      : 'ring-slate-300 focus:ring-blue-600'
-                } placeholder:text-slate-400 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6 transition-all duration-200`}
+                className={`block w-full rounded-md border-0 py-2 pl-10 text-slate-900 ring-1 ring-inset ${isExistingUser
+                  ? 'bg-slate-100 cursor-not-allowed'
+                  : errors.dni || getFieldError('dni')
+                    ? 'ring-red-300 focus:ring-red-500'
+                    : 'ring-slate-300 focus:ring-blue-600'
+                  } placeholder:text-slate-400 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6 transition-all duration-200`}
                 placeholder={documentType === 'DNI' ? '12345678' : 'Número de Pasaporte'}
               />
             </div>
@@ -553,11 +556,10 @@ export function PersonalDataForm() {
                   required: 'El apellido paterno es requerido',
                   minLength: { value: 2, message: 'Mínimo 2 caracteres' }
                 })}
-                className={`block w-full rounded-md border-0 py-2 pl-10 text-slate-900 ring-1 ring-inset ${
-                  errors.last_name_father || getFieldError('last_name_father')
-                    ? 'ring-red-300 focus:ring-red-500'
-                    : 'ring-slate-300 focus:ring-blue-600'
-                } placeholder:text-slate-400 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6 transition-all duration-200`}
+                className={`block w-full rounded-md border-0 py-2 pl-10 text-slate-900 ring-1 ring-inset ${errors.last_name_father || getFieldError('last_name_father')
+                  ? 'ring-red-300 focus:ring-red-500'
+                  : 'ring-slate-300 focus:ring-blue-600'
+                  } placeholder:text-slate-400 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6 transition-all duration-200`}
                 placeholder="Apellido Paterno"
               />
             </div>
@@ -583,11 +585,10 @@ export function PersonalDataForm() {
                   required: 'El apellido materno es requerido',
                   minLength: { value: 2, message: 'Mínimo 2 caracteres' }
                 })}
-                className={`block w-full rounded-md border-0 py-2 pl-10 text-slate-900 ring-1 ring-inset ${
-                  errors.last_name_mother || getFieldError('last_name_mother')
-                    ? 'ring-red-300 focus:ring-red-500'
-                    : 'ring-slate-300 focus:ring-blue-600'
-                } placeholder:text-slate-400 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6 transition-all duration-200`}
+                className={`block w-full rounded-md border-0 py-2 pl-10 text-slate-900 ring-1 ring-inset ${errors.last_name_mother || getFieldError('last_name_mother')
+                  ? 'ring-red-300 focus:ring-red-500'
+                  : 'ring-slate-300 focus:ring-blue-600'
+                  } placeholder:text-slate-400 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6 transition-all duration-200`}
                 placeholder="Apellido Materno"
               />
             </div>
@@ -613,11 +614,10 @@ export function PersonalDataForm() {
                   required: 'Los nombres son requeridos',
                   minLength: { value: 2, message: 'Mínimo 2 caracteres' }
                 })}
-                className={`block w-full rounded-md border-0 py-2 pl-10 text-slate-900 ring-1 ring-inset ${
-                  errors.first_names || getFieldError('first_names')
-                    ? 'ring-red-300 focus:ring-red-500'
-                    : 'ring-slate-300 focus:ring-blue-600'
-                } placeholder:text-slate-400 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6 transition-all duration-200`}
+                className={`block w-full rounded-md border-0 py-2 pl-10 text-slate-900 ring-1 ring-inset ${errors.first_names || getFieldError('first_names')
+                  ? 'ring-red-300 focus:ring-red-500'
+                  : 'ring-slate-300 focus:ring-blue-600'
+                  } placeholder:text-slate-400 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6 transition-all duration-200`}
                 placeholder="Nombres"
               />
             </div>
@@ -646,11 +646,10 @@ export function PersonalDataForm() {
                     message: 'Correo electrónico inválido'
                   }
                 })}
-                className={`block w-full rounded-md border-0 py-2 pl-10 text-slate-900 ring-1 ring-inset ${
-                  errors.email || getFieldError('email')
-                    ? 'ring-red-300 focus:ring-red-500'
-                    : 'ring-slate-300 focus:ring-blue-600'
-                } placeholder:text-slate-400 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6 transition-all duration-200`}
+                className={`block w-full rounded-md border-0 py-2 pl-10 text-slate-900 ring-1 ring-inset ${errors.email || getFieldError('email')
+                  ? 'ring-red-300 focus:ring-red-500'
+                  : 'ring-slate-300 focus:ring-blue-600'
+                  } placeholder:text-slate-400 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6 transition-all duration-200`}
                 placeholder="correo@ejemplo.com"
               />
             </div>
@@ -680,11 +679,10 @@ export function PersonalDataForm() {
                     message: 'Debe ser un número de 9 dígitos que inicie con 9'
                   }
                 })}
-                className={`block w-full rounded-md border-0 py-2 pl-10 text-slate-900 ring-1 ring-inset ${
-                  errors.phone_mobile || getFieldError('phone_mobile')
-                    ? 'ring-red-300 focus:ring-red-500'
-                    : 'ring-slate-300 focus:ring-blue-600'
-                } placeholder:text-slate-400 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6 transition-all duration-200`}
+                className={`block w-full rounded-md border-0 py-2 pl-10 text-slate-900 ring-1 ring-inset ${errors.phone_mobile || getFieldError('phone_mobile')
+                  ? 'ring-red-300 focus:ring-red-500'
+                  : 'ring-slate-300 focus:ring-blue-600'
+                  } placeholder:text-slate-400 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6 transition-all duration-200`}
                 placeholder="987654321"
               />
             </div>
@@ -827,7 +825,19 @@ export function PersonalDataForm() {
               <input
                 id="include_vocational"
                 type="checkbox"
-                {...register('include_vocational')}
+                {...register('include_vocational', {
+                  onChange: (e) => {
+                    // Si el usuario intenta marcar el check, mostrar modal y prevenir cambio visual inmediato
+                    if (e.target.checked) {
+                      e.preventDefault();
+                      // Revertir visualmente el check hasta confirmar
+                      e.target.checked = false;
+                      setValue('include_vocational', false);
+                      setShowVocationalModal(true);
+                    }
+                    // Si desmarca, dejar pasar el cambio normal
+                  }
+                })}
                 className="h-4 w-4 rounded border-0 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-blue-600"
               />
               <label htmlFor="include_vocational" className="ml-3 block text-sm font-medium text-slate-700">
@@ -835,6 +845,29 @@ export function PersonalDataForm() {
               </label>
             </div>
           </div>
+
+          <Modal
+            isOpen={showVocationalModal}
+            onClose={() => setShowVocationalModal(false)}
+            onConfirm={() => {
+              setValue('include_vocational', true);
+              setShowVocationalModal(false);
+            }}
+            title="Confirmación de Examen Vocacional"
+            variant="warning"
+            confirmText="Sí, acepto"
+            cancelText="Cancelar"
+          >
+            <p className="text-slate-600">
+              Al seleccionar esta opción, usted acepta rendir un <strong>examen vocacional adicional</strong>.
+            </p>
+            <p className="mt-2 text-slate-600">
+              Esto implica un <strong>costo extra</strong> independiente del pago por el examen de simulacro regular.
+            </p>
+            <p className="mt-4 font-medium text-slate-800">
+              ¿Estás seguro de continuar con el examen vocacional?
+            </p>
+          </Modal>
 
           <div className="pt-4 space-y-3">
             {/* Botón principal: Registrar o Actualizar */}
