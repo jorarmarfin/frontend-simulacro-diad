@@ -7,10 +7,20 @@ import { User, Mail, Phone, FileText, Loader2, AlertCircle, CheckCircle, Save } 
 import { SimulationApplicantService } from '@/lib/services/simulation-applicant.service';
 import { SimulationStorageService } from '@/lib/services/simulation-storage.service';
 import type { SimulationApplicantCreateRequest } from '@/lib/types/exam-simulation.types';
+import { UbigeoService, NormalizedUbigeo } from '@/lib/services/ubigeo.service';
+import { GenderService } from '@/lib/services/gender.service';
+import type { Gender } from '@/lib/types/exam-simulation.types';
 
 // Tipo del formulario (extiende el request con campos adicionales del form)
 interface PersonalDataFormData extends SimulationApplicantCreateRequest {
   document_type: string;
+  // Nuevos campos
+  include_vocational?: boolean;
+  genders_id?: string; // usamos string para los selects, luego parseamos a number
+  department?: string; // id o code
+  province?: string; // id o code
+  ubigeo_id?: string; // district id (string)
+  birth_date?: string;
 }
 
 export function PersonalDataForm() {
@@ -21,12 +31,19 @@ export function PersonalDataForm() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [isExistingUser, setIsExistingUser] = useState(false);
 
+  // Datos para selects dependientes
+  const [departments, setDepartments] = useState<NormalizedUbigeo[]>([]);
+  const [provinces, setProvinces] = useState<NormalizedUbigeo[]>([]);
+  const [districts, setDistricts] = useState<NormalizedUbigeo[]>([]);
+  const [genders, setGenders] = useState<Gender[]>([]);
+
   const {
     register,
     handleSubmit,
     formState: { errors, isValid },
     watch,
-    reset
+    reset,
+    setValue
   } = useForm<PersonalDataFormData>({
     mode: 'onChange',
     defaultValues: {
@@ -37,7 +54,13 @@ export function PersonalDataForm() {
       first_names: '',
       email: '',
       phone_mobile: '',
-      phone_other: ''
+      phone_other: '',
+      include_vocational: false,
+      genders_id: undefined,
+      department: undefined,
+      province: undefined,
+      ubigeo_id: undefined,
+      birth_date: undefined
     }
   });
 
@@ -54,10 +77,98 @@ export function PersonalDataForm() {
         first_names: savedData.first_names,
         email: savedData.email,
         phone_mobile: savedData.phone_mobile || '',
-        phone_other: savedData.phone_other || ''
+        phone_other: savedData.phone_other || '',
+        // Intentamos pre cargar algunos campos si existen
+        include_vocational: savedData.include_vocational ?? false,
+        birth_date: savedData.birth_date ?? undefined
       });
+
+      // Si hay gender (nombre), lo intentamos asignar luego cuando carguen los géneros
+      // Si hay ubigeo en formato libre, lo dejamos para que el usuario seleccione.
     }
   }, [reset]);
+
+  // Cargar departamentos y géneros al montar
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const deps = await UbigeoService.getDepartments();
+        if (!mounted) return;
+        setDepartments(deps);
+      } catch (err) {
+        console.error('Error loading departments', err);
+      }
+
+      try {
+        const resp = await GenderService.getAll();
+        if (!mounted) return;
+        if (resp.status === 'success') {
+          setGenders(resp.data);
+        }
+      } catch (err) {
+        console.error('Error loading genders', err);
+      }
+    })();
+
+    return () => { mounted = false; };
+  }, []);
+
+  // Watch dependencias
+  const selectedDepartment = watch('department');
+  const selectedProvince = watch('province');
+
+  // Cuando cambia departamento, cargar provincias
+  useEffect(() => {
+    let mounted = true;
+    if (!selectedDepartment) {
+      setProvinces([]);
+      setDistricts([]);
+      // limpiar province/ubigeo_id
+      setValue('province', undefined);
+      setValue('ubigeo_id', undefined);
+      return;
+    }
+
+    (async () => {
+      try {
+        const provs = await UbigeoService.getProvinces(selectedDepartment);
+        if (!mounted) return;
+        setProvinces(provs);
+        // limpiar selección de provincia y distrito
+        setValue('province', undefined);
+        setValue('ubigeo_id', undefined);
+        setDistricts([]);
+      } catch (err) {
+        console.error('Error loading provinces', err);
+      }
+    })();
+
+    return () => { mounted = false; };
+  }, [selectedDepartment, setValue]);
+
+  // Cuando cambia provincia, cargar distritos
+  useEffect(() => {
+    let mounted = true;
+    if (!selectedProvince) {
+      setDistricts([]);
+      setValue('ubigeo_id', undefined);
+      return;
+    }
+
+    (async () => {
+      try {
+        const dists = await UbigeoService.getDistricts(selectedProvince);
+        if (!mounted) return;
+        setDistricts(dists);
+        setValue('ubigeo_id', undefined);
+      } catch (err) {
+        console.error('Error loading districts', err);
+      }
+    })();
+
+    return () => { mounted = false; };
+  }, [selectedProvince, setValue]);
 
   const documentType = watch('document_type');
 
@@ -68,15 +179,31 @@ export function PersonalDataForm() {
     setIsLoading(true);
 
     try {
-      // Preparar los datos para el API (sin document_type)
-      const requestData: SimulationApplicantCreateRequest = {
+      // Preparar los datos para el API incluyendo los nuevos campos
+      const requestData: {
+        dni: string;
+        last_name_father: string;
+        last_name_mother: string;
+        first_names: string;
+        email: string;
+        phone_mobile: string;
+        phone_other?: string;
+        include_vocational: boolean;
+        genders_id?: number;
+        ubigeo_id?: number;
+        birth_date?: string;
+      } = {
         dni: data.dni,
         last_name_father: data.last_name_father,
         last_name_mother: data.last_name_mother,
         first_names: data.first_names,
         email: data.email,
         phone_mobile: data.phone_mobile,
-        phone_other: data.phone_other || undefined
+        phone_other: data.phone_other || undefined,
+        include_vocational: !!data.include_vocational,
+        genders_id: data.genders_id ? Number(data.genders_id) : undefined,
+        ubigeo_id: data.ubigeo_id ? Number(data.ubigeo_id) : undefined,
+        birth_date: data.birth_date || undefined
       };
 
       let response;
@@ -84,10 +211,10 @@ export function PersonalDataForm() {
 
       if (isExistingUser && existingUuid) {
         // Actualizar datos existentes
-        response = await SimulationApplicantService.update(existingUuid, requestData);
+        response = await SimulationApplicantService.update(existingUuid, requestData as unknown as SimulationApplicantCreateRequest);
       } else {
         // Crear nuevo registro
-        response = await SimulationApplicantService.create(requestData);
+        response = await SimulationApplicantService.create(requestData as unknown as SimulationApplicantCreateRequest);
       }
 
       if (SimulationApplicantService.isSuccessResponse(response)) {
@@ -396,6 +523,129 @@ export function PersonalDataForm() {
                 className="block w-full rounded-md border-0 py-2 pl-10 text-slate-900 ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 transition-all duration-200"
                 placeholder="Teléfono fijo u otro"
               />
+            </div>
+          </div>
+
+          {/* Departamento */}
+          <div>
+            <label htmlFor="department" className="block text-sm font-medium text-slate-700 mb-1">
+              Departamento
+            </label>
+            <div className="relative rounded-md shadow-sm">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                <FileText className="h-5 w-5 text-slate-400" aria-hidden="true" />
+              </div>
+              <select
+                id="department"
+                {...register('department')}
+                className="block w-full rounded-md border-0 py-2 pl-10 text-slate-900 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 transition-all duration-200"
+              >
+                <option value="">Seleccione un departamento</option>
+                {departments.map(dep => (
+                  <option key={dep.id} value={dep.id}>{dep.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Provincia */}
+          <div>
+            <label htmlFor="province" className="block text-sm font-medium text-slate-700 mb-1">
+              Provincia
+            </label>
+            <div className="relative rounded-md shadow-sm">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                <FileText className="h-5 w-5 text-slate-400" aria-hidden="true" />
+              </div>
+              <select
+                id="province"
+                {...register('province')}
+                disabled={!selectedDepartment}
+                className="block w-full rounded-md border-0 py-2 pl-10 text-slate-900 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 transition-all duration-200"
+              >
+                <option value="">Seleccione una provincia</option>
+                {provinces.map(prov => (
+                  <option key={prov.id} value={prov.id}>{prov.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Distrito */}
+          <div>
+            <label htmlFor="ubigeo_id" className="block text-sm font-medium text-slate-700 mb-1">
+              Distrito
+            </label>
+            <div className="relative rounded-md shadow-sm">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                <FileText className="h-5 w-5 text-slate-400" aria-hidden="true" />
+              </div>
+              <select
+                id="ubigeo_id"
+                {...register('ubigeo_id')}
+                disabled={!selectedProvince}
+                className="block w-full rounded-md border-0 py-2 pl-10 text-slate-900 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 transition-all duration-200"
+              >
+                <option value="">Seleccione un distrito</option>
+                {districts.map(dist => (
+                  <option key={dist.id} value={dist.id}>{dist.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Género */}
+          <div>
+            <label htmlFor="genders_id" className="block text-sm font-medium text-slate-700 mb-1">
+              Género
+            </label>
+            <div className="relative rounded-md shadow-sm">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                <FileText className="h-5 w-5 text-slate-400" aria-hidden="true" />
+              </div>
+              <select
+                id="genders_id"
+                {...register('genders_id')}
+                className="block w-full rounded-md border-0 py-2 pl-10 text-slate-900 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 transition-all duration-200"
+              >
+                <option value="">Seleccione un género</option>
+                {genders.map(gen => (
+                  <option key={gen.id} value={gen.id}>{gen.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Fecha de Nacimiento */}
+          <div>
+            <label htmlFor="birth_date" className="block text-sm font-medium text-slate-700 mb-1">
+              Fecha de Nacimiento
+            </label>
+            <div className="relative rounded-md shadow-sm">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                <FileText className="h-5 w-5 text-slate-400" aria-hidden="true" />
+              </div>
+              <input
+                id="birth_date"
+                type="date"
+                {...register('birth_date')}
+                className="block w-full rounded-md border-0 py-2 pl-10 text-slate-900 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 transition-all duration-200"
+              />
+            </div>
+          </div>
+
+          {/* Checkbox de Vocacional */}
+          <div>
+            <div className="flex items-center">
+              <input
+                id="include_vocational"
+                type="checkbox"
+                {...register('include_vocational')}
+                className="h-4 w-4 rounded border-0 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-blue-600"
+              />
+              <label htmlFor="include_vocational" className="ml-3 block text-sm font-medium text-slate-700">
+                Incluir Examen vocacional
+              </label>
             </div>
           </div>
 

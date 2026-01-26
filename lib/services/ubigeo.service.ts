@@ -27,17 +27,19 @@ export class UbigeoService {
   /**
    * Obtener provincias por department code o por department id.
    * Acepta tanto '150000' (string code) como 15 (number id) según la API.
+   * NOTA: si se pasa una cadena numérica se considera como CODE (por diseño del API actual),
+   * solo cuando se pasa un `number` se usará department_id.
    */
   static async getProvinces(department: string | number): Promise<NormalizedUbigeo[]> {
     try {
       let endpoint: string;
 
-      const asNumber = typeof department === 'number' || /^\d+$/.test(String(department));
-      if (asNumber && Number.isFinite(Number(department))) {
-        // Usar department_id cuando se pasa un id numérico
+      const isNumberType = typeof department === 'number';
+      if (isNumberType) {
+        // Usar department_id cuando se pasa un id numérico (tipo number)
         endpoint = `${API_CONFIG.endpoints.ubigeos.provinces}?department_id=${encodeURIComponent(String(department))}`;
       } else {
-        // Por compatibilidad usar department_code
+        // Por compatibilidad usar department_code (incluso si la cadena contiene solo dígitos)
         endpoint = `${API_CONFIG.endpoints.ubigeos.provinces}?department_code=${encodeURIComponent(String(department))}`;
       }
 
@@ -57,11 +59,12 @@ export class UbigeoService {
 
   /**
    * Obtener distritos por province code o por province id.
+   * Si se pasa `number` se usa province_id; si se pasa `string` se usa province_code.
    */
   static async getDistricts(province: string | number): Promise<NormalizedUbigeo[]> {
     try {
-      const asNumber = typeof province === 'number' || /^\d+$/.test(String(province));
-      const endpoint = asNumber
+      const isNumberType = typeof province === 'number';
+      const endpoint = isNumberType
         ? `${API_CONFIG.endpoints.ubigeos.districts}?province_id=${encodeURIComponent(String(province))}`
         : `${API_CONFIG.endpoints.ubigeos.districts}?province_code=${encodeURIComponent(String(province))}`;
 
