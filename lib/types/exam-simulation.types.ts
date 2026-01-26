@@ -26,7 +26,7 @@ export interface ExamSimulationStatusResponse {
     exam_date_end?: string; // Fecha fin de inscripciones
     exam_date?: string | null; // Fecha del examen
     is_virtual?: boolean; // Indica si el examen es virtual o presencial
-    is_vocational?: boolean; // Nuevo campo: si incluye vocacional
+    include_vocational?: boolean; // Nuevo campo: si incluye vocacional (renombrado desde is_vocational)
     available_tariffs?: AvailableTariff[]; // Nuevos datos de tarifas disponibles
     message?: string;
   };

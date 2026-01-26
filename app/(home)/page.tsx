@@ -42,8 +42,8 @@ export default async function HomePage() {
         isInscriptionOpen = typeof response.data.is_inscription_open === 'boolean'
             ? response.data.is_inscription_open
             : true;
-        // Leer el nuevo campo is_vocational
-        isVocational = response.data.is_vocational ?? false;
+        // Leer el nuevo campo include_vocational (renombrado desde is_vocational)
+        isVocational = response.data.include_vocational ?? false;
         // Leer tarifas disponibles si vienen
         if (Array.isArray(response.data.available_tariffs)) {
             availableTariffs = response.data.available_tariffs as AvailableTariff[];

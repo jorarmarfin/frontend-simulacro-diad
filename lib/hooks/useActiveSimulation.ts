@@ -62,7 +62,7 @@ export function useActiveSimulation(): UseActiveSimulationState {
     isActive: data?.data?.is_active ?? false,
     isVirtual: data?.data?.is_virtual ?? true, // Por defecto true (virtual, sin foto)
     isInscriptionOpen: data?.data?.is_inscription_open ?? true,
-    isVocational: data?.data?.is_vocational ?? false,
+    isVocational: data?.data?.include_vocational ?? false,
     description: data?.data?.description,
     examDate: data?.data?.exam_date ?? null,
     examDateStart: data?.data?.exam_date_start,
