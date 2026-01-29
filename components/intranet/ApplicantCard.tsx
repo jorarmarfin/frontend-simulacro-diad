@@ -169,7 +169,7 @@ export const ApplicantCard = forwardRef<HTMLDivElement, ApplicantCardProps>(
             /* Instrucciones para examen virtual */
             <ul className="list-disc list-inside space-y-2 text-sm text-gray-800">
               <li>El examen estara habilitado todo el día, con una duración de 3 horas.</li>
-              <li>El acceso a la plataforma se cerrara a las 12:59 de la noche.</li>
+              <li>El acceso a la plataforma se cerrara a las 23:59 de la noche.</li>
               <li>Contar con una conexión a internet estable (mínimo 5 Mbps)</li>
               <li>Utilizar una computadora o laptop</li>
               <li>Ubicarse en un ambiente tranquilo, bien iluminado y sin interrupciones</li>
