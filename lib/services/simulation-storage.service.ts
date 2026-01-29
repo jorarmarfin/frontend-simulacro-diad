@@ -189,9 +189,9 @@ export class SimulationStorageService {
 
     // Iniciar temporizador de depuración para mostrar cuenta regresiva en consola
     // (solo para debug, se puede quitar luego)
-    if (this.DEBUG) {
-      this.startDebugTimer();
-    }
+    // if (this.DEBUG) {
+    //   this.startDebugTimer();
+    // }
   }
 
   /**
