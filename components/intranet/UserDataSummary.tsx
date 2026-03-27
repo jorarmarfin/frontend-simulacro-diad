@@ -105,8 +105,9 @@ export function UserDataSummary() {
   // Resolver nombre de sede cuando solo se tiene site_id
   useEffect(() => {
     let cancelled = false;
+    const siteId = userData?.site_id;
 
-    if (siteNameFromData || !userData?.site_id) {
+    if (siteNameFromData || siteId == null) {
       return;
     }
 
@@ -115,9 +116,9 @@ export function UserDataSummary() {
         const sitesResp = await SiteService.getAll();
         if (cancelled || sitesResp.status !== 'success') return;
 
-        const match = sitesResp.data.find((site) => site.id === userData.site_id);
+        const match = sitesResp.data.find((site) => site.id === siteId);
         if (match) {
-          setResolvedSite({ siteId: userData.site_id, label: `${match.code} - ${match.name}` });
+          setResolvedSite({ siteId, label: `${match.code} - ${match.name}` });
         }
       } catch (error) {
         console.error('Error resolving site on summary:', error);
@@ -132,8 +133,9 @@ export function UserDataSummary() {
   // Resolver nombre de especialidad cuando solo se tiene major_id
   useEffect(() => {
     let cancelled = false;
+    const majorId = userData?.major_id;
 
-    if (majorNameFromData || !userData?.major_id) {
+    if (majorNameFromData || majorId == null) {
       return;
     }
 
@@ -142,9 +144,9 @@ export function UserDataSummary() {
         const majorsResp = await MajorService.getAll();
         if (cancelled || majorsResp.status !== 'success') return;
 
-        const match = majorsResp.data.find((major) => major.id === userData.major_id);
+        const match = majorsResp.data.find((major) => major.id === majorId);
         if (match) {
-          setResolvedMajor({ majorId: userData.major_id, label: major.name });
+          setResolvedMajor({ majorId, label: match.name });
         }
       } catch (error) {
         console.error('Error resolving major on summary:', error);

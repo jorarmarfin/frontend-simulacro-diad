@@ -65,8 +65,9 @@ export const ApplicantCard = forwardRef<HTMLDivElement, ApplicantCardProps>(
     // Resolver datos completos de sede cuando no vienen en el payload
     useEffect(() => {
       let cancelled = false;
+      const siteId = data.site_id;
 
-      if (hasCompleteSiteInfoFromData || !data.site_id) {
+      if (hasCompleteSiteInfoFromData || siteId == null) {
         return;
       }
 
@@ -74,10 +75,10 @@ export const ApplicantCard = forwardRef<HTMLDivElement, ApplicantCardProps>(
         try {
           const sitesResp = await SiteService.getAll();
           if (cancelled || sitesResp.status !== 'success') return;
-          const match = sitesResp.data.find((site) => site.id === data.site_id);
+          const match = sitesResp.data.find((site) => site.id === siteId);
           if (match) {
             setResolvedSite({
-              siteId: data.site_id,
+              siteId,
               name: match.name,
               local: match.local,
               direction: match.direction,
@@ -104,8 +105,9 @@ export const ApplicantCard = forwardRef<HTMLDivElement, ApplicantCardProps>(
     // Resolver nombre de especialidad cuando solo se tiene major_id
     useEffect(() => {
       let cancelled = false;
+      const majorId = data.major_id;
 
-      if (majorNameFromData || !data.major_id) {
+      if (majorNameFromData || majorId == null) {
         return;
       }
 
@@ -113,9 +115,9 @@ export const ApplicantCard = forwardRef<HTMLDivElement, ApplicantCardProps>(
         try {
           const majorsResp = await MajorService.getAll();
           if (cancelled || majorsResp.status !== 'success') return;
-          const match = majorsResp.data.find((major) => major.id === data.major_id);
+          const match = majorsResp.data.find((major) => major.id === majorId);
           if (match) {
-            setResolvedMajor({ majorId: data.major_id, label: major.name });
+            setResolvedMajor({ majorId, label: match.name });
           }
         } catch (error) {
           console.error('Error resolving major for applicant card:', error);

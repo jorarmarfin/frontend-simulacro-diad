@@ -18,7 +18,7 @@ export function CTASection() {
               href="/auth"
               className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold text-red-600 bg-white rounded-lg shadow-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-red-500 focus:ring-white transition-all duration-300 transform hover:scale-110"
             >
-              Inscríbete Gratis
+              Inscríbete ahora
               <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
           </div>
