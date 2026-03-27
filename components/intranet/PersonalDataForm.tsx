@@ -36,6 +36,45 @@ interface PersonalDataFormData {
   birth_date?: string;
 }
 
+const FIELD_LABELS: Record<string, string> = {
+  dni: 'DNI',
+  email: 'correo electrónico',
+  phone_mobile: 'teléfono móvil',
+  phone_other: 'teléfono alternativo',
+  genders_id: 'género',
+  ubigeo_id: 'ubigeo',
+  site_id: 'sede',
+  major_id: 'especialidad',
+  birth_date: 'fecha de nacimiento',
+};
+
+const translateApiValidationMessage = (message: string): string => {
+  const text = message?.trim();
+  if (!text) return message;
+
+  if (/^The given data was invalid\.?$/i.test(text)) {
+    return 'Los datos enviados no son válidos.';
+  }
+
+  const requiredMatch = text.match(/^The (.+) field is required\.?$/i);
+  if (requiredMatch) {
+    const rawField = requiredMatch[1].trim().toLowerCase().replace(/\s+/g, '_');
+    const label = FIELD_LABELS[rawField] ?? rawField.replace(/_/g, ' ');
+    return `El campo ${label} es obligatorio.`;
+  }
+
+  return text;
+};
+
+const translateApiFieldErrors = (errors: Record<string, string[]>): Record<string, string[]> => {
+  return Object.fromEntries(
+    Object.entries(errors).map(([field, messages]) => [
+      field,
+      messages.map((msg) => translateApiValidationMessage(msg)),
+    ])
+  );
+};
+
 export function PersonalDataForm() {
   // Tipo local para los datos guardados en storage (solo campos que usamos aquí)
   interface SavedApplicant {
@@ -619,16 +658,16 @@ export function PersonalDataForm() {
         }
       } else {
         // Mostrar errores del servidor
-        setError(response.message || 'Error al procesar. Intente nuevamente.');
+        setError(translateApiValidationMessage(response.message || 'Error al procesar. Intente nuevamente.'));
 
         // Si hay errores de validación por campo
         if ('errors' in response && response.errors) {
-          setFieldErrors(response.errors);
+          setFieldErrors(translateApiFieldErrors(response.errors));
         }
       }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Ocurrió un error inesperado. Intente nuevamente.';
-      setError(errorMessage);
+      setError(translateApiValidationMessage(errorMessage));
       console.error('Error en registro:', err);
     } finally {
       setIsLoading(false);
