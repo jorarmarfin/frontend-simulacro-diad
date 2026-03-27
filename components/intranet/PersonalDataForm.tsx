@@ -474,7 +474,8 @@ export function PersonalDataForm() {
           }
         } else {
           setSites([]);
-          setValue('site_id', undefined);
+          // Simulacro local: forzar sede Lima (id 1)
+          setValue('site_id', '1', { shouldValidate: false, shouldDirty: false });
         }
       } catch (err) {
         console.error('Error loading simulation config', err);
@@ -595,6 +596,16 @@ export function PersonalDataForm() {
 
     try {
       // Preparar los datos para el API incluyendo los nuevos campos
+      const resolvedSiteId = showSitesSelect
+        ? (data.site_id ? Number(data.site_id) : undefined)
+        : 1;
+
+      if (!resolvedSiteId) {
+        setError('Seleccione una sede.');
+        setIsLoading(false);
+        return;
+      }
+
       const requestData: {
         dni: string;
         last_name_father: string;
@@ -606,7 +617,7 @@ export function PersonalDataForm() {
         include_vocational: boolean;
         genders_id?: number;
         ubigeo_id?: number;
-        site_id?: number;
+        site_id: number;
         major_id?: number;
         birth_date?: string;
       } = {
@@ -620,7 +631,7 @@ export function PersonalDataForm() {
         include_vocational: false,
         genders_id: data.genders_id ? Number(data.genders_id) : undefined,
         ubigeo_id: data.ubigeo_id ? Number(data.ubigeo_id) : undefined,
-        site_id: data.site_id ? Number(data.site_id) : undefined,
+        site_id: resolvedSiteId,
         major_id: data.major_id ? Number(data.major_id) : undefined,
         birth_date: data.birth_date || undefined
       };
