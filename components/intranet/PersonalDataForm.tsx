@@ -116,7 +116,7 @@ export function PersonalDataForm() {
   const [genders, setGenders] = useState<Gender[]>([]);
   const [majors, setMajors] = useState<Major[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
-  const [showSitesSelect, setShowSitesSelect] = useState(false);
+  const [showSitesSelect, setShowSitesSelect] = useState(true);
   const [isLoadingMajors, setIsLoadingMajors] = useState(false);
   const [isLoadingSites, setIsLoadingSites] = useState(false);
   // Ref para indicar que estamos precargando valores desde storage y evitar efectos colisionantes
@@ -454,9 +454,16 @@ export function PersonalDataForm() {
         const simulationResp = await ExamSimulationService.checkActiveSimulation();
         if (!mounted) return;
 
-        const isLocalValue = simulationResp?.data?.is_local;
-        const mustShowSites = isLocalValue === false || String(isLocalValue).toLowerCase() === 'false';
+        const apiIsLocalValue = simulationResp?.data?.is_local;
+        const storedIsLocalValue = SimulationStorageService.getIsLocal();
+        const effectiveIsLocal =
+          typeof apiIsLocalValue === 'boolean' ? apiIsLocalValue : storedIsLocalValue;
+        const mustShowSites = effectiveIsLocal !== true;
         setShowSitesSelect(mustShowSites);
+
+        if (typeof apiIsLocalValue === 'boolean') {
+          SimulationStorageService.setIsLocal(apiIsLocalValue);
+        }
 
         if (mustShowSites) {
           setIsLoadingSites(true);
@@ -479,6 +486,13 @@ export function PersonalDataForm() {
         }
       } catch (err) {
         console.error('Error loading simulation config', err);
+        // Fallback: si no se pudo leer API, priorizar valor guardado; si no existe, mostrar sedes
+        const storedIsLocalValue = SimulationStorageService.getIsLocal();
+        const mustShowSites = storedIsLocalValue !== true;
+        setShowSitesSelect(mustShowSites);
+        if (!mustShowSites) {
+          setValue('site_id', '1', { shouldValidate: false, shouldDirty: false });
+        }
       } finally {
         if (mounted) setIsLoadingSites(false);
       }

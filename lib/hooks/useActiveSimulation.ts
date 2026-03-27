@@ -42,10 +42,26 @@ export function useActiveSimulation(): UseActiveSimulationState {
         SimulationStorageService.setIsVirtual(response.data.is_virtual);
       }
 
+      // Guardar is_local para controlar visualización de sede en formulario
+      if (response?.data?.is_local !== undefined) {
+        SimulationStorageService.setIsLocal(response.data.is_local);
+      }
+
       // Guardar exam_date en storage para mostrar en home y ficha
       if (response?.data?.exam_date !== undefined) {
         SimulationStorageService.setExamDate(response.data.exam_date);
       }
+
+      SimulationStorageService.setSimulationConfig({
+        is_virtual: response?.data?.is_virtual,
+        is_local: response?.data?.is_local,
+        exam_date: response?.data?.exam_date ?? null,
+        exam_date_start: response?.data?.exam_date_start ?? null,
+        exam_date_end: response?.data?.exam_date_end ?? null,
+        description: response?.data?.description ?? null,
+        include_vocational: response?.data?.include_vocational,
+        available_tariffs: response?.data?.available_tariffs,
+      });
     } catch (err) {
       setError(err as ApiError);
     } finally {

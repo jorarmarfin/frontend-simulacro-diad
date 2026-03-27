@@ -3,22 +3,39 @@
 import { useEffect } from 'react';
 import { Calendar } from 'lucide-react';
 import { SimulationStorageService } from '@/lib/services/simulation-storage.service';
+import type { AvailableTariff } from '@/lib/types/exam-simulation.types';
 
 interface SimulationDatesProps {
   dateStart: string;
   dateEnd: string;
   examDate?: string | null; // Fecha del examen
   isVirtual: boolean;
+  isLocal?: boolean;
+  description?: string;
+  includeVocational?: boolean;
+  availableTariffs?: AvailableTariff[];
 }
 
 /**
  * Componente para mostrar las fechas del simulacro
  * y guardar is_virtual y exam_date en localStorage
  */
-export function SimulationDates({ dateStart, dateEnd, examDate, isVirtual }: SimulationDatesProps) {
+export function SimulationDates({
+  dateStart,
+  dateEnd,
+  examDate,
+  isVirtual,
+  isLocal,
+  description,
+  includeVocational,
+  availableTariffs,
+}: SimulationDatesProps) {
   // Guardar is_virtual y exam_date en localStorage al montar el componente
   useEffect(() => {
     SimulationStorageService.setIsVirtual(isVirtual);
+    if (typeof isLocal === 'boolean') {
+      SimulationStorageService.setIsLocal(isLocal);
+    }
 
     // Guardar exam_date si existe
     if (examDate) {
@@ -39,8 +56,21 @@ export function SimulationDates({ dateStart, dateEnd, examDate, isVirtual }: Sim
       }
 
       SimulationStorageService.setExamDate(isoDate);
+    } else {
+      SimulationStorageService.setExamDate(null);
     }
-  }, [isVirtual, examDate]);
+
+    SimulationStorageService.setSimulationConfig({
+      is_virtual: isVirtual,
+      is_local: typeof isLocal === 'boolean' ? isLocal : undefined,
+      exam_date: examDate ?? null,
+      exam_date_start: dateStart,
+      exam_date_end: dateEnd,
+      description: description ?? null,
+      include_vocational: typeof includeVocational === 'boolean' ? includeVocational : undefined,
+      available_tariffs: Array.isArray(availableTariffs) ? availableTariffs : undefined,
+    });
+  }, [isVirtual, isLocal, examDate, dateStart, dateEnd, description, includeVocational, availableTariffs]);
 
   // Formatear fecha de DD/MM/YYYY o ISO (YYYY-MM-DD) a formato legible
   const formatDate = (dateStr: string): string => {
@@ -97,4 +127,3 @@ export function SimulationDates({ dateStart, dateEnd, examDate, isVirtual }: Sim
     </div>
   );
 }
-

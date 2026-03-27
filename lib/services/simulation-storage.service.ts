@@ -2,11 +2,24 @@
  * Servicio para manejar el almacenamiento local de datos del simulacro
  */
 
-import type { SimulationApplicant } from '@/lib/types/exam-simulation.types';
+import type { AvailableTariff, SimulationApplicant } from '@/lib/types/exam-simulation.types';
+
+export interface StoredSimulationConfig {
+  is_virtual?: boolean | null;
+  is_local?: boolean | null;
+  exam_date?: string | null;
+  exam_date_start?: string | null;
+  exam_date_end?: string | null;
+  description?: string | null;
+  include_vocational?: boolean | null;
+  available_tariffs?: AvailableTariff[];
+}
 
 const STORAGE_KEYS = {
   IS_VIRTUAL: 'simulacro_is_virtual',
+  IS_LOCAL: 'simulacro_is_local',
   EXAM_DATE: 'simulacro_exam_date',
+  SIMULATION_CONFIG: 'simulacro_simulation_config',
   APPLICANT_UUID: 'simulacro_applicant_uuid',
   APPLICANT_DATA: 'simulacro_applicant_data',
   // Nuevas claves para gestionar sesión con TTL
@@ -28,6 +41,7 @@ export class SimulationStorageService {
   static setIsVirtual(isVirtual: boolean): void {
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEYS.IS_VIRTUAL, JSON.stringify(isVirtual));
+      this.setSimulationConfig({ is_virtual: isVirtual });
     }
   }
 
@@ -39,6 +53,33 @@ export class SimulationStorageService {
     if (typeof window === 'undefined') return null;
 
     const value = localStorage.getItem(STORAGE_KEYS.IS_VIRTUAL);
+    if (value === null) return null;
+
+    try {
+      return JSON.parse(value);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Guarda si el simulacro es local (sede fija)
+   */
+  static setIsLocal(isLocal: boolean): void {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_KEYS.IS_LOCAL, JSON.stringify(isLocal));
+      this.setSimulationConfig({ is_local: isLocal });
+    }
+  }
+
+  /**
+   * Obtiene si el simulacro es local
+   * @returns true si es local, false si permite elegir sede, null si no hay dato
+   */
+  static getIsLocal(): boolean | null {
+    if (typeof window === 'undefined') return null;
+
+    const value = localStorage.getItem(STORAGE_KEYS.IS_LOCAL);
     if (value === null) return null;
 
     try {
@@ -65,9 +106,39 @@ export class SimulationStorageService {
     if (typeof window !== 'undefined') {
       if (examDate) {
         localStorage.setItem(STORAGE_KEYS.EXAM_DATE, examDate);
+        this.setSimulationConfig({ exam_date: examDate });
       } else {
         localStorage.removeItem(STORAGE_KEYS.EXAM_DATE);
+        this.setSimulationConfig({ exam_date: null });
       }
+    }
+  }
+
+  /**
+   * Guarda configuración del simulacro para reutilizarla en otras pantallas.
+   * Hace merge con la configuración ya almacenada.
+   */
+  static setSimulationConfig(config: Partial<StoredSimulationConfig>): void {
+    if (typeof window === 'undefined') return;
+    const current = this.getSimulationConfig() ?? {};
+    const merged: StoredSimulationConfig = {
+      ...current,
+      ...config,
+    };
+    localStorage.setItem(STORAGE_KEYS.SIMULATION_CONFIG, JSON.stringify(merged));
+  }
+
+  /**
+   * Obtiene la configuración del simulacro desde localStorage
+   */
+  static getSimulationConfig(): StoredSimulationConfig | null {
+    if (typeof window === 'undefined') return null;
+    const value = localStorage.getItem(STORAGE_KEYS.SIMULATION_CONFIG);
+    if (!value) return null;
+    try {
+      return JSON.parse(value) as StoredSimulationConfig;
+    } catch {
+      return null;
     }
   }
 
@@ -116,7 +187,9 @@ export class SimulationStorageService {
   static clear(): void {
     if (typeof window !== 'undefined') {
       localStorage.removeItem(STORAGE_KEYS.IS_VIRTUAL);
+      localStorage.removeItem(STORAGE_KEYS.IS_LOCAL);
       localStorage.removeItem(STORAGE_KEYS.EXAM_DATE);
+      localStorage.removeItem(STORAGE_KEYS.SIMULATION_CONFIG);
       localStorage.removeItem(STORAGE_KEYS.APPLICANT_UUID);
       localStorage.removeItem(STORAGE_KEYS.APPLICANT_DATA);
       // Nuevas claves

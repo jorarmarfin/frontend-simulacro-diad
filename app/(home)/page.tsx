@@ -9,6 +9,7 @@ import {HowItWorksSection} from '@/components/home/HowItWorksSection';
 import {CTASection} from '@/components/home/CTASection';
 import {RegistrationStatus} from '@/components/home/RegistrationStatus';
 import {SimulationDates} from '@/components/home/SimulationDates';
+import {SimulationConfigSync} from '@/components/home/SimulationConfigSync';
 import {ExamSimulationService} from '@/lib/services/exam-simulation.service';
 import type { AvailableTariff } from '@/lib/types/exam-simulation.types';
 
@@ -27,6 +28,8 @@ export default async function HomePage() {
     let dateStart = '';
     let dateEnd = '';
     let examDate = null;
+    let isLocal = false;
+    let simulationDescription = '';
     let isInscriptionOpen = true; // Nuevo: por defecto asumimos abiertas
     let isVocational = false; // Nuevo: indica si incluye examen vocacional
     let availableTariffs: AvailableTariff[] = []; // Nuevo: lista de tarifas disponibles
@@ -38,6 +41,8 @@ export default async function HomePage() {
         dateStart = response.data.exam_date_start ?? '';
         dateEnd = response.data.exam_date_end ?? '';
         examDate = response.data.exam_date ?? null;
+        isLocal = response.data.is_local ?? false;
+        simulationDescription = response.data.description ?? '';
         // Leer el nuevo campo is_inscription_open (si no viene, asumimos true para compatibilidad)
         isInscriptionOpen = typeof response.data.is_inscription_open === 'boolean'
             ? response.data.is_inscription_open
@@ -61,6 +66,19 @@ export default async function HomePage() {
 
             <main>
                 {isActive ? (
+                    <SimulationConfigSync
+                        isVirtual={isVirtual}
+                        isLocal={isLocal}
+                        examDate={examDate}
+                        dateStart={dateStart}
+                        dateEnd={dateEnd}
+                        description={simulationDescription}
+                        includeVocational={isVocational}
+                        availableTariffs={availableTariffs}
+                    />
+                ) : null}
+
+                {isActive ? (
                     // Si el simulacro está activo pero las inscripciones están cerradas,
                     // mostramos un card informativo en lugar del landing completo.
                     isInscriptionOpen ? (
@@ -72,6 +90,10 @@ export default async function HomePage() {
                                     dateEnd={dateEnd}
                                     examDate={examDate}
                                     isVirtual={isVirtual}
+                                    isLocal={isLocal}
+                                    description={simulationDescription}
+                                    includeVocational={isVocational}
+                                    availableTariffs={availableTariffs}
                                 />
                             )}
                             <HeroSection/>
