@@ -22,6 +22,7 @@ export const ApplicantCard = forwardRef<HTMLDivElement, ApplicantCardProps>(
     const examDateFormatted = SimulationStorageService.getExamDateFormatted();
 
     const isVirtual = SimulationStorageService.getIsVirtual() === true;
+    const isLocalSimulation = SimulationStorageService.getIsLocal() === true;
     const [resolvedSite, setResolvedSite] = useState<{
       siteId: number;
       name: string;
@@ -67,7 +68,7 @@ export const ApplicantCard = forwardRef<HTMLDivElement, ApplicantCardProps>(
       let cancelled = false;
       const siteId = data.site_id;
 
-      if (hasCompleteSiteInfoFromData || siteId == null) {
+      if (isLocalSimulation || hasCompleteSiteInfoFromData || siteId == null) {
         return;
       }
 
@@ -96,6 +97,7 @@ export const ApplicantCard = forwardRef<HTMLDivElement, ApplicantCardProps>(
     }, [
       hasCompleteSiteInfoFromData,
       data.site_id,
+      isLocalSimulation,
       siteNameFromData,
       siteLocalFromData,
       siteDirectionFromData,
@@ -205,32 +207,34 @@ export const ApplicantCard = forwardRef<HTMLDivElement, ApplicantCardProps>(
             📋 Información del Examen
           </h3>
           <div className="space-y-3 print:space-y-2">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 print:gap-3">
-              <div>
-                <p className="text-xs text-gray-700 font-medium uppercase">Sede</p>
-                <p className="text-base font-bold text-gray-900 print:text-sm">{siteNameDisplay}</p>
-                {siteLocalDisplay && (
-                  <p className="text-sm text-gray-900 mt-1 print:text-xs">
-                    <span className="font-semibold">Local:</span> {siteLocalDisplay}
-                  </p>
-                )}
-                {siteDirectionDisplay && (
-                  <p className="text-sm text-gray-900 mt-1 print:text-xs">
-                    <span className="font-semibold">Dirección:</span> {siteDirectionDisplay}
-                  </p>
-                )}
-                {siteGoogleMapsUrl && (
-                  <a
-                    href={siteGoogleMapsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 mt-2 text-sm font-semibold text-blue-700 hover:text-blue-900 underline print:no-underline print:text-xs"
-                  >
-                    <MapPin className="h-4 w-4" />
-                    Abrir Google Maps
-                  </a>
-                )}
-              </div>
+            <div className={`grid gap-4 print:gap-3 ${isLocalSimulation ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
+              {!isLocalSimulation && (
+                <div>
+                  <p className="text-xs text-gray-700 font-medium uppercase">Sede</p>
+                  <p className="text-base font-bold text-gray-900 print:text-sm">{siteNameDisplay}</p>
+                  {siteLocalDisplay && (
+                    <p className="text-sm text-gray-900 mt-1 print:text-xs">
+                      <span className="font-semibold">Local:</span> {siteLocalDisplay}
+                    </p>
+                  )}
+                  {siteDirectionDisplay && (
+                    <p className="text-sm text-gray-900 mt-1 print:text-xs">
+                      <span className="font-semibold">Dirección:</span> {siteDirectionDisplay}
+                    </p>
+                  )}
+                  {siteGoogleMapsUrl && (
+                    <a
+                      href={siteGoogleMapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 mt-2 text-sm font-semibold text-blue-700 hover:text-blue-900 underline print:no-underline print:text-xs"
+                    >
+                      <MapPin className="h-4 w-4" />
+                      Abrir Google Maps
+                    </a>
+                  )}
+                </div>
+              )}
               <div>
                 <p className="text-xs text-gray-700 font-medium uppercase">Especialidad</p>
                 <p className="text-base font-bold text-gray-900 print:text-sm">{majorDisplay}</p>
