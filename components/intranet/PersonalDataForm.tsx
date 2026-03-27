@@ -75,6 +75,33 @@ const translateApiFieldErrors = (errors: Record<string, string[]>): Record<strin
   );
 };
 
+const isIncludeVocationalMessage = (value: string): boolean => {
+  return /include[\s_]?vocational/i.test(value);
+};
+
+const hasIncludeVocationalValidationError = (
+  message?: string,
+  errors?: Record<string, string[]>
+): boolean => {
+  if (message && isIncludeVocationalMessage(message)) return true;
+  if (!errors) return false;
+
+  return Object.entries(errors).some(([field, messages]) => {
+    const normalizedField = field.trim().toLowerCase().replace(/\s+/g, '_');
+    if (normalizedField === 'include_vocational') return true;
+    return messages.some((msg) => isIncludeVocationalMessage(msg));
+  });
+};
+
+const stripIncludeVocationalErrors = (errors: Record<string, string[]>): Record<string, string[]> => {
+  return Object.fromEntries(
+    Object.entries(errors)
+      .filter(([field]) => field.trim().toLowerCase().replace(/\s+/g, '_') !== 'include_vocational')
+      .map(([field, messages]) => [field, messages.filter((msg) => !isIncludeVocationalMessage(msg))])
+      .filter(([, messages]) => messages.length > 0)
+  );
+};
+
 export function PersonalDataForm() {
   // Tipo local para los datos guardados en storage (solo campos que usamos aquí)
   interface SavedApplicant {
@@ -626,12 +653,28 @@ export function PersonalDataForm() {
       let response;
       const existingUuid = SimulationStorageService.getApplicantUuid();
 
-      if (isExistingUser && existingUuid) {
-        // Actualizar datos existentes
-        response = await SimulationApplicantService.update(existingUuid, requestData as unknown as SimulationApplicantCreateRequest);
-      } else {
-        // Crear nuevo registro
-        response = await SimulationApplicantService.create(requestData as unknown as SimulationApplicantCreateRequest);
+      const submitApplicant = async (payload: SimulationApplicantCreateRequest) => {
+        if (isExistingUser && existingUuid) {
+          return await SimulationApplicantService.update(existingUuid, payload);
+        }
+        return await SimulationApplicantService.create(payload);
+      };
+
+      response = await submitApplicant(requestData as unknown as SimulationApplicantCreateRequest);
+
+      // Compatibilidad temporal: algunos backends legacy aún requieren include_vocational
+      if (
+        SimulationApplicantService.isErrorResponse(response) &&
+        hasIncludeVocationalValidationError(
+          response.message,
+          'errors' in response ? response.errors : undefined
+        )
+      ) {
+        const fallbackPayload: SimulationApplicantCreateRequest = {
+          ...(requestData as unknown as SimulationApplicantCreateRequest),
+          include_vocational: false,
+        };
+        response = await submitApplicant(fallbackPayload);
       }
 
       if (SimulationApplicantService.isSuccessResponse(response)) {
@@ -662,7 +705,10 @@ export function PersonalDataForm() {
 
         // Si hay errores de validación por campo
         if ('errors' in response && response.errors) {
-          setFieldErrors(translateApiFieldErrors(response.errors));
+          const sanitizedErrors = stripIncludeVocationalErrors(response.errors);
+          if (Object.keys(sanitizedErrors).length > 0) {
+            setFieldErrors(translateApiFieldErrors(sanitizedErrors));
+          }
         }
       }
     } catch (err: unknown) {
