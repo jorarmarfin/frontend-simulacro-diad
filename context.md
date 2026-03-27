@@ -64,7 +64,7 @@ components/
 │   ├── IntranetNav.tsx       # Navegación intranet
 │   ├── LogoutButton.tsx
 │   ├── PaymentInstructions.tsx
-│   ├── PersonalDataForm.tsx  # Formulario datos (Client, 918 líneas)
+│   ├── PersonalDataForm.tsx  # Formulario datos (Client)
 │   ├── PersonalPhotoForm.tsx
 │   └── UserDataSummary.tsx
 ├── layout/                   # Layouts globales
@@ -220,10 +220,11 @@ GET    /simulation-applicants/{uuid}/status # Estado general
   - En `PersonalDataForm` se muestra siempre el `select` de especialidad (sin condicional).
   - El valor seleccionado se envía como `major_id`.
 
-### Regla de vocacional por simulacro
-- El endpoint `GET /exam-simulations` incluye `include_vocational`.
-- Si `include_vocational = false`, el checkbox **Incluir Examen vocacional** no se muestra en `PersonalDataForm`.
-- En ese caso, el frontend fuerza `include_vocational = false` en el payload.
+### Estado actual del campo vocacional
+- El endpoint `GET /exam-simulations` mantiene el campo `include_vocational`.
+- **Cambio aplicado en frontend**: `PersonalDataForm` ya no muestra el checkbox **Incluir Examen vocacional**.
+- **Cambio aplicado en frontend**: `PersonalDataForm` ya no envía `include_vocational` en `POST /simulation-applicants` ni en `POST /simulation-applicants/{uuid}`.
+- El tipo `SimulationApplicant` conserva `include_vocational` como campo opcional por compatibilidad con respuestas legacy del backend.
 
 ## 🎨 Estilos y UI
 
@@ -256,7 +257,11 @@ GET    /simulation-applicants/{uuid}/status # Estado general
   ubigeo_id?: number        // ID distrito
   site_id?: number          // ID sede
   major_id?: number         // ID especialidad
-  include_vocational?: boolean
+  site_name?: string        // nombre de sede (si backend lo retorna)
+  major_name?: string       // nombre de especialidad (si backend lo retorna)
+  site?: { id?: number; code?: string; name?: string }   // objeto opcional
+  major?: { id?: number; code?: string; name?: string }  // objeto opcional
+  include_vocational?: boolean // legacy opcional
   photo_url?: string
   photo_status?: 'pending' | 'approved' | 'rejected'
   exam_date?: string
@@ -310,7 +315,7 @@ GET    /simulation-applicants/{uuid}/status # Estado general
 
 ### Datos personales (`components/intranet/PersonalDataForm.tsx`)
 - Carga opciones de:
-  - `GET /exam-simulations` (para reglas de `is_local` y `include_vocational`)
+  - `GET /exam-simulations` (para regla de `is_local`)
   - `GET /majors`
   - `GET /sites` (solo si `is_local = false`)
   - `GET /ubigeos/departments`
@@ -321,9 +326,17 @@ GET    /simulation-applicants/{uuid}/status # Estado general
   - nuevo: `POST /simulation-applicants`
   - existente: `POST /simulation-applicants/{uuid}`
   - payload incluye `major_id` y `site_id` (cuando aplica)
+- El formulario ya no renderiza ni procesa el campo `include_vocational`.
 - Navegación siguiente paso depende de `is_virtual` guardado:
   - presencial -> `/intranet/personal-photo`
   - virtual -> `/intranet/payments-data`
+
+### Pagos (`components/intranet/PaymentInstructions.tsx`)
+- El flujo de pago muestra métodos Yape construidos dinámicamente desde `available_tariffs` de `GET /exam-simulations`.
+- Fallback: si el API no retorna tarifas, usa `applicant.tariff` desde `localStorage` cuando exista.
+- El título y el monto del método Yape se renderizan dinámicamente según cada tarifa (`description`, `amount`).
+- El monto también se muestra como línea separada en negrita para mayor visibilidad.
+- Actualmente se listan todas las tarifas disponibles devueltas por el backend.
 
 ### Foto (`components/intranet/PersonalPhotoForm.tsx`)
 - Solo para simulacro presencial (`requiresPhoto = true`).
@@ -334,8 +347,12 @@ GET    /simulation-applicants/{uuid}/status # Estado general
 - Subida: `POST /simulation-applicants/{uuid}/upload-photo`
 
 ### Confirmación y final
-- `UserDataSummary` usa `GET /simulation-applicants/{uuid}/status` para refrescar proceso y confirmar con `POST /simulation-applicants/confirm`.
-- `FinalPageContent` vuelve a verificar estado de proceso y solo muestra ficha si existe confirmación.
+- `UserDataSummary` carga perfil + proceso (`GET /simulation-applicants/{uuid}` y `GET /simulation-applicants/{uuid}/status`) para mostrar datos actualizados.
+- En confirmación se muestran explícitamente **Sede** y **Especialidad** (se retiró tarjeta de **Examen** en este bloque).
+- `FinalPageContent` verifica confirmación y refresca datos completos antes de renderizar ficha.
+- `ApplicantCard` (ficha final) incluye **Sede** y **Especialidad**:
+  - usa `site.name` / `major.name` o `site_name` / `major_name` si vienen en payload
+  - fallback por `site_id` / `major_id` consultando catálogos (`GET /sites`, `GET /majors`)
 
 ## 🚀 Scripts npm
 

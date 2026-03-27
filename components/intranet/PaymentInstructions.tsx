@@ -1,6 +1,10 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { CreditCard, Building2, Smartphone, Globe, Clock, FileText, AlertCircle, Wallet } from 'lucide-react';
+import { ExamSimulationService } from '@/lib/services/exam-simulation.service';
+import { SimulationStorageService } from '@/lib/services/simulation-storage.service';
+import type { AvailableTariff, SimulationApplicant } from '@/lib/types/exam-simulation.types';
 
 // Tipos para la configuración de bancos
 interface PaymentMethod {
@@ -8,6 +12,7 @@ interface PaymentMethod {
   icon: 'building' | 'smartphone' | 'globe' | 'file' | 'wallet';
   title: string;
   description: string;
+  amount?: string;
   enabled: boolean;
 }
 
@@ -28,7 +33,49 @@ const BANKS_CONFIG: BankConfig[] = [
     shortName: 'BCP',
     color: 'bg-blue-600',
     enabled: true, // Cambiar a false para ocultar el banco completo
-    methods: [
+    methods: []
+  },
+];
+
+const cleanDescription = (value: string): string =>
+  value.replace(/\s+/g, ' ').trim();
+
+const formatAmount = (amount: string): string => {
+  const parsed = Number(amount);
+  return Number.isFinite(parsed) ? parsed.toFixed(2) : amount;
+};
+
+const buildYapeDescription = (amount?: string): string => {
+  const amountText = amount ? ` (S/ ${formatAmount(amount)})` : '';
+  return `Ingresa a tu app de Yape → Presiona el botón "Yapear Servicios" → Haz clic en "Busca una empresa" y digita: UNIVERSIDAD NACIONAL DE INGENIERÍA → Presiona "Ingresar Pago Estudiantes" → Digita el DNI del postulante en el recuadro → Se verifica el monto del recibo${amountText} → Presiona "Yapear Servicio" y listo.`;
+};
+
+const buildYapeMethods = (tariffs: AvailableTariff[]): PaymentMethod[] => {
+  if (!tariffs.length) {
+    return [
+      {
+        id: 'bcp-yape-generic',
+        icon: 'wallet',
+        title: 'Yape - Pago Estudiantes',
+        description: buildYapeDescription(),
+        enabled: true
+      }
+    ];
+  }
+
+  return tariffs.map((tariff) => ({
+    id: `bcp-yape-${tariff.id}`,
+    icon: 'wallet',
+    title: `Yape - ${cleanDescription(tariff.description)}`,
+    description: buildYapeDescription(tariff.amount),
+    amount: tariff.amount,
+    enabled: true
+  }));
+};
+
+// Comentado por ahora: el resto de métodos puede activarse si se requiere.
+/*
+const LEGACY_METHODS: PaymentMethod[] = [
       // {
       //   id: 'bcp-ventanilla',
       //   icon: 'building',
@@ -50,23 +97,10 @@ const BANKS_CONFIG: BankConfig[] = [
       //   description: 'Entra a tu cuenta → Pagar Servicios → buscar UNIVERSIDAD NACIONAL DE INGENIERÍA → "Pago Estudiantes" → Escribe el DNI del postulante. Hacer un pago por cada monto.',
       //   enabled: true
       // },
-      {
-        id: 'bcp-yape1',
-        icon: 'wallet',
-        title: 'Yape - Simulacro regular 150',
-        description: 'Ingresa a tu app de Yape → Presiona el botón "Yapear Servicios" → Haz clic en "Busca una empresa" y digita: UNIVERSIDAD NACIONAL DE INGENIERÍA → Presiona "Ingresar Pago Estudiantes" → Digita el DNI del postulante en el recuadro → Se verifica el monto del recibo (S/ 80.00) → Presiona "Yapear Servicio" y listo.',
-        enabled: true
-      },
-      {
-        id: 'bcp-yape2',
-        icon: 'wallet',
-        title: 'Yape - Simulacro Arquitectura 200',
-        description: 'Ingresa a tu app de Yape → Presiona el botón "Yapear Servicios" → Haz clic en "Busca una empresa" y digita: UNIVERSIDAD NACIONAL DE INGENIERÍA → Presiona "Ingresar Pago Estudiantes" → Digita el DNI del postulante en el recuadro → Se verifica el monto del recibo (S/ 50.00) → Presiona "Yapear Servicio" y listo.',
-        enabled: true
-      }
-    ]
-  },
-  // {
+];
+*/
+
+// {
   //   id: 'scotiabank',
   //   name: 'Scotiabank',
   //   shortName: 'Scotia',
@@ -103,7 +137,6 @@ const BANKS_CONFIG: BankConfig[] = [
   //     }
   //   ]
   // }
-];
 
 // Función para obtener el icono según el tipo
 const getIcon = (iconType: string, color: string) => {
@@ -134,11 +167,79 @@ const getTextColor = (bgColor: string): string => {
 };
 
 export function PaymentInstructions() {
+  const [selectedTariffs, setSelectedTariffs] = useState<AvailableTariff[]>([]);
+  const [isLoadingTariffs, setIsLoadingTariffs] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadTariffs = async () => {
+      setIsLoadingTariffs(true);
+
+      try {
+        const applicant = SimulationStorageService.getApplicantData() as SimulationApplicant | null;
+        const localTariff = applicant?.tariff ?? null;
+
+        let availableTariffs: AvailableTariff[] = [];
+        try {
+          const response = await ExamSimulationService.checkActiveSimulation();
+          availableTariffs = Array.isArray(response?.data?.available_tariffs)
+            ? response.data.available_tariffs
+            : [];
+        } catch (apiError) {
+          console.error('Error loading available tariffs from API:', apiError);
+        }
+
+        if (!cancelled) {
+          if (availableTariffs.length > 0) {
+            setSelectedTariffs(availableTariffs);
+          } else if (localTariff) {
+            // Fallback: al menos mostrar la tarifa persistida del postulante
+            setSelectedTariffs([localTariff]);
+          } else {
+            setSelectedTariffs([]);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading tariffs for payment instructions:', error);
+        if (!cancelled) setSelectedTariffs([]);
+      } finally {
+        if (!cancelled) setIsLoadingTariffs(false);
+      }
+    };
+
+    loadTariffs();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const banksConfig = BANKS_CONFIG.map((bank) =>
+    bank.id === 'bcp'
+      ? { ...bank, methods: buildYapeMethods(selectedTariffs) }
+      : bank
+  );
+
   // Filtrar solo los bancos habilitados
-  const enabledBanks = BANKS_CONFIG.filter(bank => bank.enabled);
+  const enabledBanks = banksConfig.filter(bank => bank.enabled);
+  const hasEnabledMethods = enabledBanks.some((bank) => bank.methods.some((method) => method.enabled));
+
+  if (isLoadingTariffs) {
+    return (
+      <div className="w-full max-w-4xl mx-auto">
+        <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-8">
+          <div className="flex items-center justify-center gap-3 text-slate-500">
+            <Clock className="h-6 w-6 animate-spin" />
+            <p>Cargando tarifas de pago...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Verificar si hay algún banco habilitado
-  if (enabledBanks.length === 0) {
+  if (enabledBanks.length === 0 || !hasEnabledMethods) {
     return (
       <div className="w-full max-w-4xl mx-auto">
         <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-8">
@@ -211,6 +312,11 @@ export function PaymentInstructions() {
                     <p className="text-sm text-slate-600">
                       {method.description}
                     </p>
+                    {method.amount && (
+                      <p className="text-sm text-slate-700 mt-2">
+                        Monto: <strong className="font-bold text-slate-900">S/ {formatAmount(method.amount)}</strong>
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>
@@ -236,4 +342,3 @@ export function PaymentInstructions() {
     </div>
   );
 }
-

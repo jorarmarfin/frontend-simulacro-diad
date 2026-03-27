@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { User, Mail, Phone, FileText, Loader2, AlertCircle, CheckCircle, Save } from 'lucide-react';
-import { Modal } from '@/components/ui/Modal';
 import { ExamSimulationService } from '@/lib/services/exam-simulation.service';
 import { MajorService } from '@/lib/services/major.service';
 import { SimulationApplicantService } from '@/lib/services/simulation-applicant.service';
@@ -28,7 +27,6 @@ interface PersonalDataFormData {
   phone_mobile: string;
   phone_other?: string | null;
   // Nuevos campos
-  include_vocational?: boolean;
   genders_id?: string; // usamos string para los selects, luego parseamos a number
   department?: string; // id o code
   province?: string; // id o code
@@ -49,7 +47,6 @@ export function PersonalDataForm() {
     email?: string;
     phone_mobile?: string | null;
     phone_other?: string | null;
-    include_vocational?: boolean;
     gender_id?: number | string | null;
     genders_id?: number | string | null;
     birth_date?: string | null;
@@ -81,14 +78,10 @@ export function PersonalDataForm() {
   const [majors, setMajors] = useState<Major[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
   const [showSitesSelect, setShowSitesSelect] = useState(false);
-  const [showVocationalCheckbox, setShowVocationalCheckbox] = useState(false);
   const [isLoadingMajors, setIsLoadingMajors] = useState(false);
   const [isLoadingSites, setIsLoadingSites] = useState(false);
   // Ref para indicar que estamos precargando valores desde storage y evitar efectos colisionantes
   const isPreloadingRef = useRef(false);
-
-  // Estado para el modal de confirmación vocacional
-  const [showVocationalModal, setShowVocationalModal] = useState(false);
 
   const {
     register,
@@ -109,7 +102,6 @@ export function PersonalDataForm() {
       email: '',
       phone_mobile: '',
       phone_other: '',
-      include_vocational: false,
       genders_id: undefined,
       department: undefined,
       province: undefined,
@@ -215,7 +207,6 @@ export function PersonalDataForm() {
       email: applicant.email,
       phone_mobile: applicant.phone_mobile || '',
       phone_other: applicant.phone_other || '',
-      include_vocational: applicant.include_vocational ?? false,
       site_id: resolvedSiteId ? String(resolvedSiteId) : undefined,
       major_id: resolvedMajorId ? String(resolvedMajorId) : undefined,
       birth_date: applicant.birth_date ?? undefined
@@ -428,15 +419,6 @@ export function PersonalDataForm() {
         const mustShowSites = isLocalValue === false || String(isLocalValue).toLowerCase() === 'false';
         setShowSitesSelect(mustShowSites);
 
-        const includeVocationalValue = simulationResp?.data?.include_vocational;
-        const mustShowVocationalCheckbox =
-          includeVocationalValue === true || String(includeVocationalValue).toLowerCase() === 'true';
-        setShowVocationalCheckbox(mustShowVocationalCheckbox);
-        if (!mustShowVocationalCheckbox) {
-          setValue('include_vocational', false);
-          setShowVocationalModal(false);
-        }
-
         if (mustShowSites) {
           setIsLoadingSites(true);
           const sitesResp = await SiteService.getAll();
@@ -582,7 +564,6 @@ export function PersonalDataForm() {
         email: string;
         phone_mobile: string;
         phone_other?: string;
-        include_vocational: boolean;
         genders_id?: number;
         ubigeo_id?: number;
         site_id?: number;
@@ -596,7 +577,6 @@ export function PersonalDataForm() {
         email: data.email,
         phone_mobile: data.phone_mobile,
         phone_other: data.phone_other || undefined,
-        include_vocational: !!data.include_vocational,
         genders_id: data.genders_id ? Number(data.genders_id) : undefined,
         ubigeo_id: data.ubigeo_id ? Number(data.ubigeo_id) : undefined,
         site_id: data.site_id ? Number(data.site_id) : undefined,
@@ -1107,60 +1087,6 @@ export function PersonalDataForm() {
               />
             </div>
           </div>
-
-          {/* Checkbox de Vocacional (solo si el simulacro lo permite) */}
-          {showVocationalCheckbox && (
-            <>
-              <div>
-                <div className="flex items-center">
-                  <input
-                    id="include_vocational"
-                    type="checkbox"
-                    {...register('include_vocational', {
-                      onChange: (e) => {
-                        // Si el usuario intenta marcar el check, mostrar modal y prevenir cambio visual inmediato
-                        if (e.target.checked) {
-                          e.preventDefault();
-                          // Revertir visualmente el check hasta confirmar
-                          e.target.checked = false;
-                          setValue('include_vocational', false);
-                          setShowVocationalModal(true);
-                        }
-                        // Si desmarca, dejar pasar el cambio normal
-                      }
-                    })}
-                    className="h-4 w-4 rounded border-0 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-blue-600"
-                  />
-                  <label htmlFor="include_vocational" className="ml-3 block text-sm font-medium text-slate-700">
-                    Incluir Examen vocacional
-                  </label>
-                </div>
-              </div>
-
-              <Modal
-                isOpen={showVocationalModal}
-                onClose={() => setShowVocationalModal(false)}
-                onConfirm={() => {
-                  setValue('include_vocational', true);
-                  setShowVocationalModal(false);
-                }}
-                title="Confirmación de Examen Vocacional"
-                variant="warning"
-                confirmText="Sí, acepto"
-                cancelText="Cancelar"
-              >
-                <p className="text-slate-600">
-                  Al seleccionar esta opción, usted acepta rendir un <strong>examen vocacional adicional</strong>.
-                </p>
-                <p className="mt-2 text-slate-600">
-                  Esto implica un <strong>costo extra</strong> independiente del pago por el examen de simulacro regular.
-                </p>
-                <p className="mt-4 font-medium text-slate-800">
-                  ¿Estás seguro de continuar con el examen vocacional?
-                </p>
-              </Modal>
-            </>
-          )}
 
           <div className="pt-4 space-y-3">
             {/* Botón principal: Registrar o Actualizar */}

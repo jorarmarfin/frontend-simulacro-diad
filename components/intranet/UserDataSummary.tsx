@@ -329,17 +329,6 @@ export function UserDataSummary() {
             </div>
           )}
 
-          {/* Descripción del examen */}
-          <div className="bg-slate-50 rounded-lg p-4">
-            <div className="flex items-center gap-2 text-slate-500 text-sm mb-1">
-              <FileText className="h-4 w-4" />
-              <span>Examen</span>
-            </div>
-            <p className="text-lg font-semibold text-slate-900">
-              {userData.exam_description}
-            </p>
-          </div>
-
           {/* Sede */}
           <div className="bg-slate-50 rounded-lg p-4">
             <div className="flex items-center gap-2 text-slate-500 text-sm mb-1">

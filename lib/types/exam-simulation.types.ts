@@ -56,6 +56,9 @@ export interface SimulationApplicantSite {
   id?: number | null;
   code?: string | null;
   name?: string | null;
+  local?: string | null;
+  direction?: string | null;
+  google_maps_url?: string | null;
 }
 
 export interface SimulationApplicantMajor {
