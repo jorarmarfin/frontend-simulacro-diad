@@ -55,6 +55,7 @@ components/
 │   ├── HowItWorksSection.tsx # Cómo funciona
 │   ├── NotificationButton.tsx
 │   ├── RegistrationStatus.tsx
+│   ├── SimulationConfigSync.tsx
 │   └── SimulationDates.tsx
 ├── intranet/                 # Componentes área privada
 │   ├── ApplicantCard.tsx
@@ -133,7 +134,9 @@ lib/
 - **No backend session**: Todo client-side con validación en server cuando sea necesario
 - **Claves usadas**:
   - `simulacro_is_virtual`
+  - `simulacro_is_local`
   - `simulacro_exam_date`
+  - `simulacro_simulation_config`
   - `simulacro_applicant_uuid`
   - `simulacro_applicant_data`
   - `simulacro_session_expires_at`
@@ -184,11 +187,14 @@ GET    /simulation-applicants/{uuid}/status # Estado general
 ### Reglas funcionales nuevas (sedes/local)
 - El endpoint `GET /exam-simulations` ahora incluye el campo booleano `is_local`.
 - Si `is_local = false`, en `registroParticipan` se debe mostrar el `select` de sedes.
+- Si `is_local = true`, no se muestra el `select` de sedes en `PersonalDataForm` y se envía `site_id = 1` (Lima) por defecto.
 - El `select` se alimenta con `GET /sites` y muestra por opción: `id` y `name`.
 - Estado en código actual:
   - Integrado: `is_local` en tipos y consulta real en `PersonalDataForm`.
+  - Integrado: persistencia de `is_local` en localStorage (`simulacro_is_local`) desde Home y hooks.
   - Integrado: `site.service.ts` y consumo de `GET /sites`.
-  - Integrado: `select` condicional de sedes (`site_id`) cuando `is_local = false`.
+  - Integrado: `select` condicional de sedes (`site_id`) cuando `is_local = false` + validación obligatoria.
+  - Integrado: si no hay dato confiable de `is_local`, el formulario muestra sedes por defecto (comportamiento seguro).
 - Respuesta esperada de `GET /sites`:
 ```json
 {
@@ -223,7 +229,7 @@ GET    /simulation-applicants/{uuid}/status # Estado general
 ### Estado actual del campo vocacional
 - El endpoint `GET /exam-simulations` mantiene el campo `include_vocational`.
 - **Cambio aplicado en frontend**: `PersonalDataForm` ya no muestra el checkbox **Incluir Examen vocacional**.
-- **Cambio aplicado en frontend**: `PersonalDataForm` ya no envía `include_vocational` en `POST /simulation-applicants` ni en `POST /simulation-applicants/{uuid}`.
+- **Estado actual de compatibilidad backend**: `PersonalDataForm` envía `include_vocational: false` en `POST /simulation-applicants` y `POST /simulation-applicants/{uuid}` para evitar validaciones legacy del API.
 - El tipo `SimulationApplicant` conserva `include_vocational` como campo opcional por compatibilidad con respuestas legacy del backend.
 
 ## 🎨 Estilos y UI
@@ -300,6 +306,7 @@ GET    /simulation-applicants/{uuid}/status # Estado general
   - `exam_date_start`, `exam_date_end`, `exam_date`
   - `include_vocational`
   - `available_tariffs`
+- Renderiza `SimulationConfigSync` (Client Component) para persistir en `localStorage` la configuración del simulacro aunque no se muestre `SimulationDates`.
 - Exporta `dynamic = 'force-dynamic'` y `revalidate = 0`.
 
 ### Login (`components/auth/login.tsx`)
@@ -325,8 +332,10 @@ GET    /simulation-applicants/{uuid}/status # Estado general
 - Envío de formulario:
   - nuevo: `POST /simulation-applicants`
   - existente: `POST /simulation-applicants/{uuid}`
-  - payload incluye `major_id` y `site_id` (cuando aplica)
-- El formulario ya no renderiza ni procesa el campo `include_vocational`.
+  - payload incluye `major_id` y `site_id` obligatorio
+  - cuando `is_local = true`, `site_id` se fuerza a `1` (Lima)
+- El formulario ya no renderiza ni permite elegir el campo `include_vocational`.
+- Por compatibilidad de backend, el payload incluye `include_vocational: false`.
 - Navegación siguiente paso depende de `is_virtual` guardado:
   - presencial -> `/intranet/personal-photo`
   - virtual -> `/intranet/payments-data`
@@ -353,6 +362,9 @@ GET    /simulation-applicants/{uuid}/status # Estado general
 - `ApplicantCard` (ficha final) incluye **Sede** y **Especialidad**:
   - usa `site.name` / `major.name` o `site_name` / `major_name` si vienen en payload
   - fallback por `site_id` / `major_id` consultando catálogos (`GET /sites`, `GET /majors`)
+- Regla actual de ficha final:
+  - si `is_local = true`, no se muestra el bloque de **Sede** en la ficha.
+  - si `is_local = false`, se muestra **Sede** con local, dirección y link a Google Maps (si existen datos).
 
 ## 🚀 Scripts npm
 
