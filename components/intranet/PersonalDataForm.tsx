@@ -75,33 +75,6 @@ const translateApiFieldErrors = (errors: Record<string, string[]>): Record<strin
   );
 };
 
-const isIncludeVocationalMessage = (value: string): boolean => {
-  return /include[\s_]?vocational/i.test(value);
-};
-
-const hasIncludeVocationalValidationError = (
-  message?: string,
-  errors?: Record<string, string[]>
-): boolean => {
-  if (message && isIncludeVocationalMessage(message)) return true;
-  if (!errors) return false;
-
-  return Object.entries(errors).some(([field, messages]) => {
-    const normalizedField = field.trim().toLowerCase().replace(/\s+/g, '_');
-    if (normalizedField === 'include_vocational') return true;
-    return messages.some((msg) => isIncludeVocationalMessage(msg));
-  });
-};
-
-const stripIncludeVocationalErrors = (errors: Record<string, string[]>): Record<string, string[]> => {
-  return Object.fromEntries(
-    Object.entries(errors)
-      .filter(([field]) => field.trim().toLowerCase().replace(/\s+/g, '_') !== 'include_vocational')
-      .map(([field, messages]) => [field, messages.filter((msg) => !isIncludeVocationalMessage(msg))])
-      .filter(([, messages]) => messages.length > 0)
-  );
-};
-
 export function PersonalDataForm() {
   // Tipo local para los datos guardados en storage (solo campos que usamos aquí)
   interface SavedApplicant {
@@ -630,6 +603,7 @@ export function PersonalDataForm() {
         email: string;
         phone_mobile: string;
         phone_other?: string;
+        include_vocational: boolean;
         genders_id?: number;
         ubigeo_id?: number;
         site_id?: number;
@@ -643,6 +617,7 @@ export function PersonalDataForm() {
         email: data.email,
         phone_mobile: data.phone_mobile,
         phone_other: data.phone_other || undefined,
+        include_vocational: false,
         genders_id: data.genders_id ? Number(data.genders_id) : undefined,
         ubigeo_id: data.ubigeo_id ? Number(data.ubigeo_id) : undefined,
         site_id: data.site_id ? Number(data.site_id) : undefined,
@@ -650,7 +625,6 @@ export function PersonalDataForm() {
         birth_date: data.birth_date || undefined
       };
 
-      let response;
       const existingUuid = SimulationStorageService.getApplicantUuid();
 
       const submitApplicant = async (payload: SimulationApplicantCreateRequest) => {
@@ -660,22 +634,7 @@ export function PersonalDataForm() {
         return await SimulationApplicantService.create(payload);
       };
 
-      response = await submitApplicant(requestData as unknown as SimulationApplicantCreateRequest);
-
-      // Compatibilidad temporal: algunos backends legacy aún requieren include_vocational
-      if (
-        SimulationApplicantService.isErrorResponse(response) &&
-        hasIncludeVocationalValidationError(
-          response.message,
-          'errors' in response ? response.errors : undefined
-        )
-      ) {
-        const fallbackPayload: SimulationApplicantCreateRequest = {
-          ...(requestData as unknown as SimulationApplicantCreateRequest),
-          include_vocational: false,
-        };
-        response = await submitApplicant(fallbackPayload);
-      }
+      const response = await submitApplicant(requestData as unknown as SimulationApplicantCreateRequest);
 
       if (SimulationApplicantService.isSuccessResponse(response)) {
         // Preservar site_id y major_id aunque el backend no los retorne explícitamente
@@ -705,10 +664,7 @@ export function PersonalDataForm() {
 
         // Si hay errores de validación por campo
         if ('errors' in response && response.errors) {
-          const sanitizedErrors = stripIncludeVocationalErrors(response.errors);
-          if (Object.keys(sanitizedErrors).length > 0) {
-            setFieldErrors(translateApiFieldErrors(sanitizedErrors));
-          }
+          setFieldErrors(translateApiFieldErrors(response.errors));
         }
       }
     } catch (err: unknown) {
