@@ -53,14 +53,14 @@ const BANKS_CONFIG: BankConfig[] = [
       {
         id: 'bcp-yape1',
         icon: 'wallet',
-        title: 'Yape',
+        title: 'Yape - Simulacro regular 150',
         description: 'Ingresa a tu app de Yape → Presiona el botón "Yapear Servicios" → Haz clic en "Busca una empresa" y digita: UNIVERSIDAD NACIONAL DE INGENIERÍA → Presiona "Ingresar Pago Estudiantes" → Digita el DNI del postulante en el recuadro → Se verifica el monto del recibo (S/ 80.00) → Presiona "Yapear Servicio" y listo.',
         enabled: true
       },
       {
         id: 'bcp-yape2',
         icon: 'wallet',
-        title: 'Yape',
+        title: 'Yape - Simulacro Arquitectura 200',
         description: 'Ingresa a tu app de Yape → Presiona el botón "Yapear Servicios" → Haz clic en "Busca una empresa" y digita: UNIVERSIDAD NACIONAL DE INGENIERÍA → Presiona "Ingresar Pago Estudiantes" → Digita el DNI del postulante en el recuadro → Se verifica el monto del recibo (S/ 50.00) → Presiona "Yapear Servicio" y listo.',
         enabled: true
       }

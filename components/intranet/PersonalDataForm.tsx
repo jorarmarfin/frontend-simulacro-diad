@@ -5,12 +5,15 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { User, Mail, Phone, FileText, Loader2, AlertCircle, CheckCircle, Save } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
+import { ExamSimulationService } from '@/lib/services/exam-simulation.service';
+import { MajorService } from '@/lib/services/major.service';
 import { SimulationApplicantService } from '@/lib/services/simulation-applicant.service';
 import { SimulationStorageService } from '@/lib/services/simulation-storage.service';
-import type { SimulationApplicantCreateRequest } from '@/lib/types/exam-simulation.types';
+import { SiteService } from '@/lib/services/site.service';
+import type { SimulationApplicant, SimulationApplicantCreateRequest } from '@/lib/types/exam-simulation.types';
 import { UbigeoService, NormalizedUbigeo } from '@/lib/services/ubigeo.service';
 import { GenderService } from '@/lib/services/gender.service';
-import type { Gender } from '@/lib/types/exam-simulation.types';
+import type { Gender, Major, Site } from '@/lib/types/exam-simulation.types';
 import type { GendersResponse } from '@/lib/types/exam-simulation.types';
 
 // Tipo del formulario (extiende el request con campos adicionales del form)
@@ -30,6 +33,8 @@ interface PersonalDataFormData {
   department?: string; // id o code
   province?: string; // id o code
   ubigeo_id?: string; // district id (string)
+  site_id?: string; // site id (string)
+  major_id?: string; // major id (string)
   birth_date?: string;
 }
 
@@ -46,9 +51,18 @@ export function PersonalDataForm() {
     phone_other?: string | null;
     include_vocational?: boolean;
     gender_id?: number | string | null;
+    genders_id?: number | string | null;
     birth_date?: string | null;
     ubigeo_codes?: { department_code?: string; province_code?: string } | null;
     ubigeo_id?: number | null;
+    site_id?: number | null;
+    sites_id?: number | null;
+    major_id?: number | null;
+    majors_id?: number | null;
+    siteId?: number | string | null;
+    majorId?: number | string | null;
+    site?: { id?: number | string | null } | null;
+    major?: { id?: number | string | null } | null;
     [key: string]: unknown;
   }
 
@@ -64,6 +78,12 @@ export function PersonalDataForm() {
   const [provinces, setProvinces] = useState<NormalizedUbigeo[]>([]);
   const [districts, setDistricts] = useState<NormalizedUbigeo[]>([]);
   const [genders, setGenders] = useState<Gender[]>([]);
+  const [majors, setMajors] = useState<Major[]>([]);
+  const [sites, setSites] = useState<Site[]>([]);
+  const [showSitesSelect, setShowSitesSelect] = useState(false);
+  const [showVocationalCheckbox, setShowVocationalCheckbox] = useState(false);
+  const [isLoadingMajors, setIsLoadingMajors] = useState(false);
+  const [isLoadingSites, setIsLoadingSites] = useState(false);
   // Ref para indicar que estamos precargando valores desde storage y evitar efectos colisionantes
   const isPreloadingRef = useRef(false);
 
@@ -76,7 +96,8 @@ export function PersonalDataForm() {
     formState: { errors, isValid },
     watch,
     reset,
-    setValue
+    setValue,
+    getValues
   } = useForm<PersonalDataFormData>({
     mode: 'onChange',
     defaultValues: {
@@ -93,6 +114,8 @@ export function PersonalDataForm() {
       department: undefined,
       province: undefined,
       ubigeo_id: undefined,
+      site_id: undefined,
+      major_id: undefined,
       birth_date: undefined
     }
   });
@@ -166,6 +189,22 @@ export function PersonalDataForm() {
       console.warn('Precarga: error cargando departamentos/géneros', err);
     }
 
+    const parseMaybeId = (value: unknown): number | undefined => {
+      if (value === null || value === undefined || value === '') return undefined;
+      const parsed = Number(value);
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+    };
+    const resolvedSiteId =
+      parseMaybeId(applicant.site_id)
+      ?? parseMaybeId(applicant.sites_id)
+      ?? parseMaybeId(applicant.siteId)
+      ?? parseMaybeId(applicant.site?.id);
+    const resolvedMajorId =
+      parseMaybeId(applicant.major_id)
+      ?? parseMaybeId(applicant.majors_id)
+      ?? parseMaybeId(applicant.majorId)
+      ?? parseMaybeId(applicant.major?.id);
+
     // Reset básico de campos
     reset({
       document_type: 'DNI',
@@ -177,13 +216,16 @@ export function PersonalDataForm() {
       phone_mobile: applicant.phone_mobile || '',
       phone_other: applicant.phone_other || '',
       include_vocational: applicant.include_vocational ?? false,
+      site_id: resolvedSiteId ? String(resolvedSiteId) : undefined,
+      major_id: resolvedMajorId ? String(resolvedMajorId) : undefined,
       birth_date: applicant.birth_date ?? undefined
     });
 
     // Pre-cargar gender
-    if (applicant.gender_id) {
+    const resolvedGenderId = applicant.gender_id ?? applicant.genders_id;
+    if (resolvedGenderId) {
       try {
-        const genderStr = String(applicant.gender_id);
+        const genderStr = String(resolvedGenderId);
         const genderList = (gendersResp && gendersResp.status === 'success') ? gendersResp.data : [];
         const foundGender = genderList.find(g => String(g.id) === genderStr);
         if (foundGender) setValue('genders_id', String(foundGender.id));
@@ -245,6 +287,90 @@ export function PersonalDataForm() {
     isPreloadingRef.current = false;
   }, [reset, setValue]);
 
+  // Reaplicar site_id y major_id cuando las opciones ya cargaron (caso edición)
+  useEffect(() => {
+    if (!isExistingUser) return;
+    let cancelled = false;
+
+    const parseMaybeId = (value: unknown): number | undefined => {
+      if (value === null || value === undefined || value === '') return undefined;
+      const parsed = Number(value);
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+    };
+
+    const applySelectValues = (siteId?: number, majorId?: number) => {
+      if (showSitesSelect && sites.length > 0 && siteId) {
+        const hasOption = sites.some((s) => String(s.id) === String(siteId));
+        if (hasOption) {
+          setValue('site_id', String(siteId), { shouldValidate: true, shouldDirty: false });
+        }
+      }
+
+      if (majors.length > 0 && majorId) {
+        const hasOption = majors.some((m) => String(m.id) === String(majorId));
+        if (hasOption) {
+          setValue('major_id', String(majorId), { shouldValidate: true, shouldDirty: false });
+        }
+      }
+    };
+
+    const saved = SimulationStorageService.getApplicantData() as SavedApplicant | null;
+    if (!saved) return;
+
+    let resolvedSiteId =
+      parseMaybeId(saved.site_id)
+      ?? parseMaybeId(saved.sites_id)
+      ?? parseMaybeId(saved.siteId)
+      ?? parseMaybeId(saved.site?.id);
+    let resolvedMajorId =
+      parseMaybeId(saved.major_id)
+      ?? parseMaybeId(saved.majors_id)
+      ?? parseMaybeId(saved.majorId)
+      ?? parseMaybeId(saved.major?.id);
+
+    applySelectValues(resolvedSiteId, resolvedMajorId);
+
+    // Fallback: si localStorage no trae ids, refrescar desde GET /simulation-applicants/{uuid}
+    if ((!resolvedSiteId || !resolvedMajorId) && saved.uuid) {
+      (async () => {
+        try {
+          const response = await SimulationApplicantService.getByUuid(String(saved.uuid));
+          if (cancelled || !SimulationApplicantService.isSuccessResponse(response)) return;
+
+          const fresh = response.data as unknown as SavedApplicant;
+          resolvedSiteId =
+            parseMaybeId(fresh.site_id)
+            ?? parseMaybeId(fresh.sites_id)
+            ?? parseMaybeId(fresh.siteId)
+            ?? parseMaybeId(fresh.site?.id)
+            ?? resolvedSiteId;
+          resolvedMajorId =
+            parseMaybeId(fresh.major_id)
+            ?? parseMaybeId(fresh.majors_id)
+            ?? parseMaybeId(fresh.majorId)
+            ?? parseMaybeId(fresh.major?.id)
+            ?? resolvedMajorId;
+
+          applySelectValues(resolvedSiteId, resolvedMajorId);
+
+          // Mantener ids en storage para próximas ediciones
+          const mergedData = {
+            ...response.data,
+            site_id: response.data.site_id ?? resolvedSiteId ?? null,
+            major_id: response.data.major_id ?? resolvedMajorId ?? null,
+          };
+          SimulationStorageService.setApplicantData(mergedData as SimulationApplicant);
+        } catch (err) {
+          console.error('Error refreshing applicant data for site/major:', err);
+        }
+      })();
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isExistingUser, showSitesSelect, sites, majors, getValues, setValue]);
+
   // Ejecutar precarga al montar y suscribir a eventos de storage para recargar si cambia applicant
   useEffect(() => {
     const mounted = { current: true } as { current: boolean };
@@ -273,10 +399,87 @@ export function PersonalDataForm() {
     };
   }, [reset, setValue, preloadFromStorage]);
 
-  // Cargar departamentos y géneros al montar
+  // Cargar configuración del simulacro, departamentos y géneros al montar
   useEffect(() => {
     let mounted = true;
     (async () => {
+      const parseMaybeId = (value: unknown): number | undefined => {
+        if (value === null || value === undefined || value === '') return undefined;
+        const parsed = Number(value);
+        return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+      };
+      const saved = SimulationStorageService.getApplicantData() as SavedApplicant | null;
+      const savedSiteId =
+        parseMaybeId(saved?.site_id)
+        ?? parseMaybeId(saved?.sites_id)
+        ?? parseMaybeId(saved?.siteId)
+        ?? parseMaybeId(saved?.site?.id);
+      const savedMajorId =
+        parseMaybeId(saved?.major_id)
+        ?? parseMaybeId(saved?.majors_id)
+        ?? parseMaybeId(saved?.majorId)
+        ?? parseMaybeId(saved?.major?.id);
+
+      try {
+        const simulationResp = await ExamSimulationService.checkActiveSimulation();
+        if (!mounted) return;
+
+        const isLocalValue = simulationResp?.data?.is_local;
+        const mustShowSites = isLocalValue === false || String(isLocalValue).toLowerCase() === 'false';
+        setShowSitesSelect(mustShowSites);
+
+        const includeVocationalValue = simulationResp?.data?.include_vocational;
+        const mustShowVocationalCheckbox =
+          includeVocationalValue === true || String(includeVocationalValue).toLowerCase() === 'true';
+        setShowVocationalCheckbox(mustShowVocationalCheckbox);
+        if (!mustShowVocationalCheckbox) {
+          setValue('include_vocational', false);
+          setShowVocationalModal(false);
+        }
+
+        if (mustShowSites) {
+          setIsLoadingSites(true);
+          const sitesResp = await SiteService.getAll();
+          if (!mounted) return;
+
+          if (sitesResp.status === 'success') {
+            setSites(sitesResp.data);
+            if (savedSiteId && sitesResp.data.some((s) => s.id === savedSiteId)) {
+              setValue('site_id', String(savedSiteId), { shouldValidate: true, shouldDirty: false });
+            }
+          } else {
+            setSites([]);
+            console.error('Error loading sites:', sitesResp.message);
+          }
+        } else {
+          setSites([]);
+          setValue('site_id', undefined);
+        }
+      } catch (err) {
+        console.error('Error loading simulation config', err);
+      } finally {
+        if (mounted) setIsLoadingSites(false);
+      }
+
+      try {
+        setIsLoadingMajors(true);
+        const majorsResp = await MajorService.getAll();
+        if (!mounted) return;
+        if (majorsResp.status === 'success') {
+          setMajors(majorsResp.data);
+          if (savedMajorId && majorsResp.data.some((m) => m.id === savedMajorId)) {
+            setValue('major_id', String(savedMajorId), { shouldValidate: true, shouldDirty: false });
+          }
+        } else {
+          setMajors([]);
+          console.error('Error loading majors:', majorsResp.message);
+        }
+      } catch (err) {
+        console.error('Error loading majors', err);
+      } finally {
+        if (mounted) setIsLoadingMajors(false);
+      }
+
       try {
         const deps = await UbigeoService.getDepartments();
         if (!mounted) return;
@@ -297,7 +500,7 @@ export function PersonalDataForm() {
     })();
 
     return () => { mounted = false; };
-  }, []);
+  }, [setValue]);
 
   // Watch dependencias
   const selectedDepartment = watch('department');
@@ -382,6 +585,8 @@ export function PersonalDataForm() {
         include_vocational: boolean;
         genders_id?: number;
         ubigeo_id?: number;
+        site_id?: number;
+        major_id?: number;
         birth_date?: string;
       } = {
         dni: data.dni,
@@ -394,6 +599,8 @@ export function PersonalDataForm() {
         include_vocational: !!data.include_vocational,
         genders_id: data.genders_id ? Number(data.genders_id) : undefined,
         ubigeo_id: data.ubigeo_id ? Number(data.ubigeo_id) : undefined,
+        site_id: data.site_id ? Number(data.site_id) : undefined,
+        major_id: data.major_id ? Number(data.major_id) : undefined,
         birth_date: data.birth_date || undefined
       };
 
@@ -409,8 +616,16 @@ export function PersonalDataForm() {
       }
 
       if (SimulationApplicantService.isSuccessResponse(response)) {
+        // Preservar site_id y major_id aunque el backend no los retorne explícitamente
+        const previousData = SimulationStorageService.getApplicantData();
+        const mergedData = {
+          ...response.data,
+          site_id: response.data.site_id ?? requestData.site_id ?? previousData?.site_id ?? null,
+          major_id: response.data.major_id ?? requestData.major_id ?? previousData?.major_id ?? null,
+        };
+
         // Guardar datos completos en localStorage
-        SimulationStorageService.setApplicantData(response.data);
+        SimulationStorageService.setApplicantData(mergedData);
 
         if (isExistingUser) {
           // Si es actualización, mostrar mensaje de éxito
@@ -711,6 +926,80 @@ export function PersonalDataForm() {
             </div>
           </div>
 
+          {/* Sedes (solo cuando el simulacro NO es local principal) */}
+          {showSitesSelect && (
+            <div>
+              <label htmlFor="site_id" className="block text-sm font-medium text-slate-700 mb-1">
+                Sede
+              </label>
+              <div className="relative rounded-md shadow-sm">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                  <FileText className="h-5 w-5 text-slate-400" aria-hidden="true" />
+                </div>
+                <select
+                  id="site_id"
+                  {...register('site_id', {
+                    required: 'Seleccione una sede',
+                  })}
+                  disabled={isLoadingSites || sites.length === 0}
+                  className={`block w-full rounded-md border-0 py-2 pl-10 text-slate-900 ring-1 ring-inset ${
+                    errors.site_id || getFieldError('site_id')
+                      ? 'ring-red-300 focus:ring-red-500'
+                      : 'ring-slate-300 focus:ring-blue-600'
+                  } focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6 transition-all duration-200`}
+                >
+                  <option value="">
+                    {isLoadingSites ? 'Cargando sedes...' : 'Seleccione una sede'}
+                  </option>
+                  {sites.map((site) => (
+                    <option key={site.id} value={site.id}>
+                      {site.id} - {site.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {(errors.site_id || getFieldError('site_id')) && (
+                <p className="mt-1 text-sm text-red-600">{errors.site_id?.message || getFieldError('site_id')}</p>
+              )}
+            </div>
+          )}
+
+          {/* Especialidad */}
+          <div>
+            <label htmlFor="major_id" className="block text-sm font-medium text-slate-700 mb-1">
+              Especialidad
+            </label>
+            <div className="relative rounded-md shadow-sm">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                <FileText className="h-5 w-5 text-slate-400" aria-hidden="true" />
+              </div>
+              <select
+                id="major_id"
+                {...register('major_id', {
+                  required: 'Seleccione una especialidad',
+                })}
+                disabled={isLoadingMajors || majors.length === 0}
+                className={`block w-full rounded-md border-0 py-2 pl-10 text-slate-900 ring-1 ring-inset ${
+                  errors.major_id || getFieldError('major_id')
+                    ? 'ring-red-300 focus:ring-red-500'
+                    : 'ring-slate-300 focus:ring-blue-600'
+                } focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6 transition-all duration-200`}
+              >
+                <option value="">
+                  {isLoadingMajors ? 'Cargando especialidades...' : 'Seleccione una especialidad'}
+                </option>
+                {majors.map((major) => (
+                  <option key={major.id} value={major.id}>
+                    {major.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {(errors.major_id || getFieldError('major_id')) && (
+              <p className="mt-1 text-sm text-red-600">{errors.major_id?.message || getFieldError('major_id')}</p>
+            )}
+          </div>
+
           {/* Departamento */}
           <div>
             <label htmlFor="department" className="block text-sm font-medium text-slate-700 mb-1">
@@ -819,55 +1108,59 @@ export function PersonalDataForm() {
             </div>
           </div>
 
-          {/* Checkbox de Vocacional */}
-          <div>
-            <div className="flex items-center">
-              <input
-                id="include_vocational"
-                type="checkbox"
-                {...register('include_vocational', {
-                  onChange: (e) => {
-                    // Si el usuario intenta marcar el check, mostrar modal y prevenir cambio visual inmediato
-                    if (e.target.checked) {
-                      e.preventDefault();
-                      // Revertir visualmente el check hasta confirmar
-                      e.target.checked = false;
-                      setValue('include_vocational', false);
-                      setShowVocationalModal(true);
-                    }
-                    // Si desmarca, dejar pasar el cambio normal
-                  }
-                })}
-                className="h-4 w-4 rounded border-0 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-blue-600"
-              />
-              <label htmlFor="include_vocational" className="ml-3 block text-sm font-medium text-slate-700">
-                Incluir Examen vocacional
-              </label>
-            </div>
-          </div>
+          {/* Checkbox de Vocacional (solo si el simulacro lo permite) */}
+          {showVocationalCheckbox && (
+            <>
+              <div>
+                <div className="flex items-center">
+                  <input
+                    id="include_vocational"
+                    type="checkbox"
+                    {...register('include_vocational', {
+                      onChange: (e) => {
+                        // Si el usuario intenta marcar el check, mostrar modal y prevenir cambio visual inmediato
+                        if (e.target.checked) {
+                          e.preventDefault();
+                          // Revertir visualmente el check hasta confirmar
+                          e.target.checked = false;
+                          setValue('include_vocational', false);
+                          setShowVocationalModal(true);
+                        }
+                        // Si desmarca, dejar pasar el cambio normal
+                      }
+                    })}
+                    className="h-4 w-4 rounded border-0 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-blue-600"
+                  />
+                  <label htmlFor="include_vocational" className="ml-3 block text-sm font-medium text-slate-700">
+                    Incluir Examen vocacional
+                  </label>
+                </div>
+              </div>
 
-          <Modal
-            isOpen={showVocationalModal}
-            onClose={() => setShowVocationalModal(false)}
-            onConfirm={() => {
-              setValue('include_vocational', true);
-              setShowVocationalModal(false);
-            }}
-            title="Confirmación de Examen Vocacional"
-            variant="warning"
-            confirmText="Sí, acepto"
-            cancelText="Cancelar"
-          >
-            <p className="text-slate-600">
-              Al seleccionar esta opción, usted acepta rendir un <strong>examen vocacional adicional</strong>.
-            </p>
-            <p className="mt-2 text-slate-600">
-              Esto implica un <strong>costo extra</strong> independiente del pago por el examen de simulacro regular.
-            </p>
-            <p className="mt-4 font-medium text-slate-800">
-              ¿Estás seguro de continuar con el examen vocacional?
-            </p>
-          </Modal>
+              <Modal
+                isOpen={showVocationalModal}
+                onClose={() => setShowVocationalModal(false)}
+                onConfirm={() => {
+                  setValue('include_vocational', true);
+                  setShowVocationalModal(false);
+                }}
+                title="Confirmación de Examen Vocacional"
+                variant="warning"
+                confirmText="Sí, acepto"
+                cancelText="Cancelar"
+              >
+                <p className="text-slate-600">
+                  Al seleccionar esta opción, usted acepta rendir un <strong>examen vocacional adicional</strong>.
+                </p>
+                <p className="mt-2 text-slate-600">
+                  Esto implica un <strong>costo extra</strong> independiente del pago por el examen de simulacro regular.
+                </p>
+                <p className="mt-4 font-medium text-slate-800">
+                  ¿Estás seguro de continuar con el examen vocacional?
+                </p>
+              </Modal>
+            </>
+          )}
 
           <div className="pt-4 space-y-3">
             {/* Botón principal: Registrar o Actualizar */}
@@ -914,4 +1207,3 @@ export function PersonalDataForm() {
     </div>
   );
 }
-

@@ -2,7 +2,9 @@
 
 import { forwardRef, useState, useEffect } from 'react';
 import type { SimulationApplicant } from '@/lib/types/exam-simulation.types';
+import { MajorService } from '@/lib/services/major.service';
 import { SimulationStorageService } from '@/lib/services/simulation-storage.service';
+import { SiteService } from '@/lib/services/site.service';
 import Image from "next/image";
 
 interface ApplicantCardProps {
@@ -18,14 +20,76 @@ export const ApplicantCard = forwardRef<HTMLDivElement, ApplicantCardProps>(
     // Obtener la fecha del examen formateada desde localStorage
     const examDateFormatted = SimulationStorageService.getExamDateFormatted();
 
-    // Estado para saber si el simulacro es virtual
-    const [isVirtual, setIsVirtual] = useState<boolean>(false);
+    const isVirtual = SimulationStorageService.getIsVirtual() === true;
+    const [resolvedSite, setResolvedSite] = useState<{ siteId: number; label: string } | null>(null);
+    const [resolvedMajor, setResolvedMajor] = useState<{ majorId: number; label: string } | null>(null);
 
-    // Leer el flag de localStorage al montar el componente
+    const siteNameFromData = data.site?.name ?? data.site_name ?? null;
+    const majorNameFromData = data.major?.name ?? data.major_name ?? null;
+
+    const siteDisplay = siteNameFromData
+      ? (data.site?.code ? `${data.site.code} - ${siteNameFromData}` : siteNameFromData)
+      : (resolvedSite && resolvedSite.siteId === data.site_id
+        ? resolvedSite.label
+        : (data.site_id ? `ID ${data.site_id}` : 'No aplica'));
+
+    const majorDisplay = majorNameFromData
+      ? (data.major?.code ? `${data.major.code} - ${majorNameFromData}` : majorNameFromData)
+      : (resolvedMajor && resolvedMajor.majorId === data.major_id
+        ? resolvedMajor.label
+        : (data.major_id ? `ID ${data.major_id}` : 'No registrada'));
+
+    // Resolver nombre de sede cuando solo se tiene site_id
     useEffect(() => {
-      const virtualFlag = SimulationStorageService.getIsVirtual();
-      setIsVirtual(virtualFlag === true);
-    }, []);
+      let cancelled = false;
+
+      if (siteNameFromData || !data.site_id) {
+        return;
+      }
+
+      (async () => {
+        try {
+          const sitesResp = await SiteService.getAll();
+          if (cancelled || sitesResp.status !== 'success') return;
+          const match = sitesResp.data.find((site) => site.id === data.site_id);
+          if (match) {
+            setResolvedSite({ siteId: data.site_id, label: `${match.code} - ${match.name}` });
+          }
+        } catch (error) {
+          console.error('Error resolving site for applicant card:', error);
+        }
+      })();
+
+      return () => {
+        cancelled = true;
+      };
+    }, [siteNameFromData, data.site_id]);
+
+    // Resolver nombre de especialidad cuando solo se tiene major_id
+    useEffect(() => {
+      let cancelled = false;
+
+      if (majorNameFromData || !data.major_id) {
+        return;
+      }
+
+      (async () => {
+        try {
+          const majorsResp = await MajorService.getAll();
+          if (cancelled || majorsResp.status !== 'success') return;
+          const match = majorsResp.data.find((major) => major.id === data.major_id);
+          if (match) {
+            setResolvedMajor({ majorId: data.major_id, label: major.name });
+          }
+        } catch (error) {
+          console.error('Error resolving major for applicant card:', error);
+        }
+      })();
+
+      return () => {
+        cancelled = true;
+      };
+    }, [majorNameFromData, data.major_id]);
 
     return (
       <div ref={ref} className="bg-white p-8 max-w-4xl mx-auto">
@@ -103,6 +167,17 @@ export const ApplicantCard = forwardRef<HTMLDivElement, ApplicantCardProps>(
             📋 Información del Examen
           </h3>
           <div className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-gray-700 font-medium uppercase">Sede</p>
+                <p className="text-base font-bold text-gray-900">{siteDisplay}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-700 font-medium uppercase">Especialidad</p>
+                <p className="text-base font-bold text-gray-900">{majorDisplay}</p>
+              </div>
+            </div>
+
             <div>
               <p className="text-xs text-gray-700 font-medium uppercase">Modalidad</p>
               <p className="text-lg font-bold text-gray-900">{data.exam_description}</p>
@@ -223,4 +298,3 @@ export const ApplicantCard = forwardRef<HTMLDivElement, ApplicantCardProps>(
 );
 
 ApplicantCard.displayName = 'ApplicantCard';
-

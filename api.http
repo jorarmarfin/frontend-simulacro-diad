@@ -90,3 +90,9 @@ GET {{host}}/ubigeos/provinces?department_code=150000
 
 ### Get districts by province code
 GET {{host}}/ubigeos/districts?province_code=150100
+
+### Get Sites
+GET {{host}}/sites
+
+### Get Majors
+GET {{host}}/majors

@@ -5,6 +5,8 @@ const API_CONFIG = {
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://backend-inscripcion.local/api',
   endpoints: {
     examSimulations: '/exam-simulations',
+    sites: '/sites',
+    majors: '/majors',
     genders: '/genders', // nuevo endpoint
     ubigeos: {
       departments: '/ubigeos/departments',

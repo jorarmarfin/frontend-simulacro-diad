@@ -26,6 +26,7 @@ export interface ExamSimulationStatusResponse {
     exam_date_end?: string; // Fecha fin de inscripciones
     exam_date?: string | null; // Fecha del examen
     is_virtual?: boolean; // Indica si el examen es virtual o presencial
+    is_local?: boolean; // Indica si el examen se rinde solo en local principal
     include_vocational?: boolean; // Nuevo campo: si incluye vocacional (renombrado desde is_vocational)
     available_tariffs?: AvailableTariff[]; // Nuevos datos de tarifas disponibles
     message?: string;
@@ -51,6 +52,18 @@ export interface SimulationApplicantProcess {
   data_confirmation?: string | null; // nuevo nombre posible para confirmation
 }
 
+export interface SimulationApplicantSite {
+  id?: number | null;
+  code?: string | null;
+  name?: string | null;
+}
+
+export interface SimulationApplicantMajor {
+  id?: number | null;
+  code?: string | null;
+  name?: string | null;
+}
+
 export interface SimulationApplicant {
   id: number;
   uuid: string; // UUID único para búsquedas del postulante
@@ -73,6 +86,12 @@ export interface SimulationApplicant {
   birth_date?: string; // fecha de nacimiento (YYYY-MM-DD)
   ubigeo?: string; // ubigeo en formato 'DEPARTAMENTO/PROVINCIA/DISTRITO'
   ubigeo_id?: number | null; // id numérico del distrito (nuevo campo)
+  site_id?: number | null; // id de sede seleccionada
+  major_id?: number | null; // id de especialidad seleccionada
+  site_name?: string | null; // nombre de sede (si backend lo envía)
+  major_name?: string | null; // nombre de especialidad (si backend lo envía)
+  site?: SimulationApplicantSite | null; // objeto sede resumido (si backend lo envía)
+  major?: SimulationApplicantMajor | null; // objeto especialidad resumido (si backend lo envía)
   ubigeo_codes?: { // códigos para request encadenados (department_code, province_code)
     department_code?: string;
     province_code?: string;
@@ -97,6 +116,8 @@ export interface SimulationApplicantCreateRequest {
   include_vocational?: boolean;
   genders_id?: number | null; // nota: backend espera `genders_id` al enviar
   ubigeo_id?: number | null;
+  site_id?: number | null;
+  major_id?: number | null;
   birth_date?: string; // YYYY-MM-DD
 }
 
@@ -214,6 +235,33 @@ export interface GendersResponse {
   status: 'success' | 'error';
   message?: string;
   data: Gender[];
+}
+
+export interface Site {
+  id: number;
+  code: string;
+  name: string;
+  local: string;
+  direction: string;
+  google_maps_url: string;
+}
+
+export interface SitesResponse {
+  status: 'success' | 'error';
+  message?: string;
+  data: Site[];
+}
+
+export interface Major {
+  id: number;
+  code: string;
+  name: string;
+}
+
+export interface MajorsResponse {
+  status: 'success' | 'error';
+  message?: string;
+  data: Major[];
 }
 
 export interface UbigeoItem {

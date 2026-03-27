@@ -12,8 +12,10 @@ import {
   Edit,
   Camera
 } from 'lucide-react';
+import { MajorService } from '@/lib/services/major.service';
 import { SimulationStorageService } from '@/lib/services/simulation-storage.service';
 import { SimulationApplicantService } from '@/lib/services/simulation-applicant.service';
+import { SiteService } from '@/lib/services/site.service';
 import type { SimulationApplicant } from '@/lib/types/exam-simulation.types';
 
 export function UserDataSummary() {
@@ -23,6 +25,8 @@ export function UserDataSummary() {
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [canConfirm, setCanConfirm] = useState(false);
+  const [resolvedSite, setResolvedSite] = useState<{ siteId: number; label: string } | null>(null);
+  const [resolvedMajor, setResolvedMajor] = useState<{ majorId: number; label: string } | null>(null);
 
   // Función para cargar el estado del proceso
   const loadProcessStatus = async (uuid: string) => {
@@ -47,16 +51,110 @@ export function UserDataSummary() {
     }
   };
 
-  // Cargar datos del usuario desde localStorage
+  // Cargar datos del usuario desde localStorage y refrescar desde API
   useEffect(() => {
-    const data = SimulationStorageService.getApplicantData();
-    setUserData(data);
+    const loadApplicantData = async () => {
+      const localData = SimulationStorageService.getApplicantData();
+      if (!localData?.uuid) {
+        setUserData(localData);
+        return;
+      }
 
-    // Cargar el estado del proceso si hay datos
-    if (data?.uuid) {
-      loadProcessStatus(data.uuid);
-    }
+      try {
+        const [processResponse, applicantResponse] = await Promise.all([
+          SimulationApplicantService.getProcessStatus(localData.uuid),
+          SimulationApplicantService.getByUuid(localData.uuid)
+        ]);
+
+        const freshestApplicantData =
+          SimulationApplicantService.isSuccessResponse(applicantResponse)
+            ? { ...localData, ...applicantResponse.data }
+            : localData;
+
+        const updatedData =
+          processResponse.status === 'success' && processResponse.data?.process
+            ? { ...freshestApplicantData, process: processResponse.data.process }
+            : freshestApplicantData;
+
+        SimulationStorageService.setApplicantData(updatedData);
+        setUserData(updatedData);
+      } catch (error) {
+        console.error('Error cargando datos completos del postulante:', error);
+        setUserData(localData);
+      }
+    };
+
+    loadApplicantData();
   }, []);
+
+  const siteNameFromData = userData?.site?.name ?? userData?.site_name ?? null;
+  const majorNameFromData = userData?.major?.name ?? userData?.major_name ?? null;
+
+  const siteDisplay = siteNameFromData
+    ? (userData?.site?.code ? `${userData.site.code} - ${siteNameFromData}` : siteNameFromData)
+    : (resolvedSite && resolvedSite.siteId === userData?.site_id
+      ? resolvedSite.label
+      : (userData?.site_id ? `ID ${userData.site_id}` : 'No aplica'));
+
+  const majorDisplay = majorNameFromData
+    ? (userData?.major?.code ? `${userData.major.code} - ${majorNameFromData}` : majorNameFromData)
+    : (resolvedMajor && resolvedMajor.majorId === userData?.major_id
+      ? resolvedMajor.label
+      : (userData?.major_id ? `ID ${userData.major_id}` : 'No registrada'));
+
+  // Resolver nombre de sede cuando solo se tiene site_id
+  useEffect(() => {
+    let cancelled = false;
+
+    if (siteNameFromData || !userData?.site_id) {
+      return;
+    }
+
+    (async () => {
+      try {
+        const sitesResp = await SiteService.getAll();
+        if (cancelled || sitesResp.status !== 'success') return;
+
+        const match = sitesResp.data.find((site) => site.id === userData.site_id);
+        if (match) {
+          setResolvedSite({ siteId: userData.site_id, label: `${match.code} - ${match.name}` });
+        }
+      } catch (error) {
+        console.error('Error resolving site on summary:', error);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [siteNameFromData, userData?.site_id]);
+
+  // Resolver nombre de especialidad cuando solo se tiene major_id
+  useEffect(() => {
+    let cancelled = false;
+
+    if (majorNameFromData || !userData?.major_id) {
+      return;
+    }
+
+    (async () => {
+      try {
+        const majorsResp = await MajorService.getAll();
+        if (cancelled || majorsResp.status !== 'success') return;
+
+        const match = majorsResp.data.find((major) => major.id === userData.major_id);
+        if (match) {
+          setResolvedMajor({ majorId: userData.major_id, label: major.name });
+        }
+      } catch (error) {
+        console.error('Error resolving major on summary:', error);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [majorNameFromData, userData?.major_id]);
 
   // Recalcular canConfirm cada vez que userData cambie
   useEffect(() => {
@@ -101,8 +199,13 @@ export function UserDataSummary() {
 
         // Actualizar los datos en localStorage si vienen en la respuesta
         if (response.data) {
-          SimulationStorageService.setApplicantData(response.data);
-          setUserData(response.data);
+          const mergedData = {
+            ...userData,
+            ...response.data,
+            process: response.data.process ?? userData.process
+          } as SimulationApplicant;
+          SimulationStorageService.setApplicantData(mergedData);
+          setUserData(mergedData);
         }
 
         // Recargar el estado del proceso después de confirmar
@@ -234,6 +337,28 @@ export function UserDataSummary() {
             </div>
             <p className="text-lg font-semibold text-slate-900">
               {userData.exam_description}
+            </p>
+          </div>
+
+          {/* Sede */}
+          <div className="bg-slate-50 rounded-lg p-4">
+            <div className="flex items-center gap-2 text-slate-500 text-sm mb-1">
+              <FileText className="h-4 w-4" />
+              <span>Sede</span>
+            </div>
+            <p className="text-lg font-semibold text-slate-900">
+              {siteDisplay}
+            </p>
+          </div>
+
+          {/* Especialidad */}
+          <div className="bg-slate-50 rounded-lg p-4">
+            <div className="flex items-center gap-2 text-slate-500 text-sm mb-1">
+              <FileText className="h-4 w-4" />
+              <span>Especialidad</span>
+            </div>
+            <p className="text-lg font-semibold text-slate-900">
+              {majorDisplay}
             </p>
           </div>
         </div>
@@ -376,4 +501,3 @@ export function UserDataSummary() {
     </div>
   );
 }
-

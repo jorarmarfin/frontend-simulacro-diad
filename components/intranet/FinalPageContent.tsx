@@ -30,19 +30,27 @@ export function FinalPageContent() {
       }
 
       try {
-        // Consultar la API para obtener el estado actualizado del proceso
-        const response = await SimulationApplicantService.getProcessStatus(localData.uuid);
+        // Consultar en paralelo el estado del proceso y el perfil completo
+        const [processResponse, applicantResponse] = await Promise.all([
+          SimulationApplicantService.getProcessStatus(localData.uuid),
+          SimulationApplicantService.getByUuid(localData.uuid)
+        ]);
 
-        if (response.status === 'success') {
+        const freshestApplicantData =
+          SimulationApplicantService.isSuccessResponse(applicantResponse)
+            ? { ...localData, ...applicantResponse.data }
+            : localData;
+
+        if (processResponse.status === 'success') {
           // Actualizar el proceso en el localStorage
           const updatedData = {
-            ...localData,
-            process: response.data.process
+            ...freshestApplicantData,
+            process: processResponse.data.process
           };
           SimulationStorageService.setApplicantData(updatedData);
 
           // Verificar si ya confirmó sus datos
-          const hasConfirmation = response.data.process.confirmation !== null;
+          const hasConfirmation = processResponse.data.process.confirmation !== null;
 
           if (!hasConfirmation) {
             // Si no ha confirmado, redirigir a la página de confirmación
@@ -54,16 +62,16 @@ export function FinalPageContent() {
           setUserData(updatedData);
         } else {
           // Si hay error en la API, verificar con datos del localStorage
-          console.error('Error al obtener el estado del proceso:', response.message);
+          console.error('Error al obtener el estado del proceso:', processResponse.message);
 
-          const hasConfirmation = localData.process.confirmation !== null;
+          const hasConfirmation = freshestApplicantData.process.confirmation !== null;
 
           if (!hasConfirmation) {
             router.push('/intranet/personal-data-confirm');
             return;
           }
 
-          setUserData(localData);
+          setUserData(freshestApplicantData);
         }
       } catch (error) {
         console.error('Error al cargar el estado del proceso:', error);
@@ -100,4 +108,3 @@ export function FinalPageContent() {
   // Mostrar la ficha imprimible
   return <FichaApplicant userData={userData} />;
 }
-

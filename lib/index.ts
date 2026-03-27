@@ -6,6 +6,8 @@
 // Servicios
 export { ExamSimulationService } from './services/exam-simulation.service';
 export { SimulationApplicantService } from './services/simulation-applicant.service';
+export { SiteService } from './services/site.service';
+export { MajorService } from './services/major.service';
 
 // Hooks
 export { useSimulationApplicantSearch } from './hooks/useSimulationApplicantSearch';
@@ -39,6 +41,10 @@ export type {
   ProcessStatusResponse,
   ProcessStatusSuccessResponse,
   ProcessStatusErrorResponse,
+  Site,
+  SitesResponse,
+  Major,
+  MajorsResponse,
 } from './types/exam-simulation.types';
 
 // Configuración
@@ -46,4 +52,3 @@ export { API_CONFIG } from './config/api.config';
 
 // Cliente API (por si necesitas usarlo directamente)
 export { apiClient } from './utils/api-client';
-
