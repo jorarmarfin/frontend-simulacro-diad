@@ -47,7 +47,8 @@ const formatAmount = (amount: string): string => {
 
 const buildYapeDescription = (amount?: string): string => {
   const amountText = amount ? ` (S/ ${formatAmount(amount)})` : '';
-  return `Ingresa a tu app de Yape → Presiona el botón "Yapear Servicios" → Haz clic en "Busca una empresa" y digita: UNIVERSIDAD NACIONAL DE INGENIERÍA → Presiona "Ingresar Pago Estudiantes" → Digita el DNI del postulante en el recuadro → Se verifica el monto del recibo${amountText} → Presiona "Yapear Servicio" y listo.`;
+  //return `Ingresa a tu app de Yape → Presiona el botón "Yapear Servicios" → Haz clic en "Busca una empresa" y digita: UNIVERSIDAD NACIONAL DE INGENIERÍA → Presiona "Ingresar Pago Estudiantes" → Digita el DNI del postulante en el recuadro → Se verifica el monto del recibo${amountText} → Presiona "Yapear Servicio" y listo.`;
+  return `Ingresa a tu app de BancaMovilBCP → Presiona el botón "Pagar Servicios" → Haz clic en "Busca una empresa" y digita: UNIVERSIDAD NACIONAL DE INGENIERÍA → Presiona "Servicios de admisión" → Digita el DNI del postulante en el recuadro → Se verifica el monto del recibo${amountText} → Presiona "Realizar Pago" y listo.`;
 };
 
 const buildYapeMethods = (tariffs: AvailableTariff[]): PaymentMethod[] => {
@@ -66,7 +67,7 @@ const buildYapeMethods = (tariffs: AvailableTariff[]): PaymentMethod[] => {
   return tariffs.map((tariff) => ({
     id: `bcp-yape-${tariff.id}`,
     icon: 'wallet',
-    title: `Yape - ${cleanDescription(tariff.description)}`,
+    title: `Banca Movil - ${cleanDescription(tariff.description)}`,
     description: buildYapeDescription(tariff.amount),
     amount: tariff.amount,
     enabled: true
